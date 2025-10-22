@@ -1,0 +1,157 @@
+/* Chat Animation Styles */
+
+/* Message slide-in animation */
+@keyframes slideInMessage {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.message-enter {
+  animation: slideInMessage 0.3s ease-out forwards;
+}
+
+/* Typing indicator bounce animation */
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
+
+.typing-dot {
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Message bubble hover effect */
+.message-bubble {
+  transition: all 0.2s ease-out;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+}
+
+/* Input focus animation */
+.message-input-container {
+  transition: all 0.2s ease-out;
+}
+
+.message-input-container:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px rgba(255, 107, 53, 0.3);
+}
+
+/* Send button pulse animation */
+@keyframes sendPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+  }
+}
+
+.send-button-active {
+  animation: sendPulse 0.6s ease-out;
+}
+
+/* Smooth scroll behavior */
+.chat-messages {
+  scroll-behavior: smooth;
+}
+
+/* Status icon animations */
+@keyframes statusCheck {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.status-icon-enter {
+  animation: statusCheck 0.3s ease-out;
+}
+
+/* Header slide down animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-header {
+  animation: slideDown 0.4s ease-out;
+}
+
+/* Input slide up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-input {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* Backdrop blur effect */
+.backdrop-blur {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Message status transitions */
+.message-status {
+  transition: color 0.3s ease-out;
+}
+
+/* Avatar online status pulse */
+@keyframes onlinePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.avatar-online {
+  animation: onlinePulse 2s infinite;
+}
