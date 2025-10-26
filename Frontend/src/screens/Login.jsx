@@ -45,9 +45,10 @@ function Login() {
 
     try {
       setLoading(true);
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       const endpoint = activeTab === "user" ? "/user/login" : "/captain/login";
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}${endpoint}`,
+        `${serverUrl}${endpoint}`,
         data
       );
 

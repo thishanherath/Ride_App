@@ -2,6 +2,7 @@ const blacklistTokenModel = require("../models/blacklistToken.model");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user.model");
 const captainModel = require("../models/captain.model");
+const adminModel = require("../models/admin.model");
 
 module.exports.authUser = async (req, res, next) => {
   const token = req.cookies.token || req.headers.token;
@@ -87,6 +88,51 @@ module.exports.authCaptain = async (req, res, next) => {
       return res.status(401).json({ message: "Token Expired" });
     } else {
       return res.status(401).json({ message: "Unauthorized User", error });
+    }
+  }
+};
+
+module.exports.authAdmin = async (req, res, next) => {
+  const token = req.cookies.token || req.headers.token;
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized Admin" });
+  }
+
+  const isBlacklisted = await blacklistTokenModel.findOne({ token });
+  if (isBlacklisted) {
+    return res.status(401).json({ message: "Blacklisted Unauthorized Admin" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (decoded.userType !== "admin") {
+      return res.status(401).json({ message: "Invalid token type" });
+    }
+
+    const admin = await adminModel.findOne({ _id: decoded.id, isActive: true });
+    if (!admin) {
+      return res.status(401).json({ message: "Unauthorized Admin" });
+    }
+
+    req.admin = {
+      _id: admin._id,
+      fullname: admin.fullname,
+      email: admin.email,
+      phone: admin.phone,
+      role: admin.role,
+      permissions: admin.permissions,
+      lastLogin: admin.lastLogin
+    };
+    req.userType = "admin";
+
+    next();
+  } catch (error) {
+    if (error.message === "jwt expired") {
+      return res.status(401).json({ message: "Token Expired" });
+    } else {
+      return res.status(401).json({ message: "Unauthorized Admin", error });
     }
   }
 };

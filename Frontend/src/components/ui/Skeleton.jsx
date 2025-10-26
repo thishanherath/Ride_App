@@ -235,7 +235,7 @@ export const SkeletonRidePanel = ({ className = '' }) => (
       </div>
       <div className="relative">
         <Skeleton variant="avatar" width="12px" height="12px" className="absolute left-3 top-1/2 transform -translate-y-1/2" />
-        <Skeleton width="100%" height="56px" rounded="xl" className="pl-10" animationType="shimmer" className="animate-delay-100" />
+        <Skeleton width="100%" height="56px" rounded="xl" className="pl-10 animate-delay-100" animationType="shimmer" />
       </div>
     </div>
     <Skeleton width="100%" height="56px" rounded="xl" animationType="shimmer" className="animate-delay-200" />

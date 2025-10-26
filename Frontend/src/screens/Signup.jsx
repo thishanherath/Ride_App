@@ -47,6 +47,13 @@ function Signup() {
       setLoading(true);
       setResponseError("");
       
+      // Check if VITE_SERVER_URL is configured
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      
+      if (!import.meta.env.VITE_SERVER_URL) {
+        console.warn('VITE_SERVER_URL is not set. Using default: http://localhost:5000');
+      }
+      
       // Debug: Log form data
       console.log("Form data received:", data);
       console.log("Active tab:", activeTab);
@@ -85,11 +92,12 @@ function Signup() {
       }
 
       // Debug: Log request details
-      console.log("Request URL:", `${import.meta.env.VITE_SERVER_URL}${endpoint}`);
+      const requestUrl = `${serverUrl}${endpoint}`;
+      console.log("Request URL:", requestUrl);
       console.log("Request data:", userData);
 
       const response = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}${endpoint}`,
+        requestUrl,
         userData
       );
 

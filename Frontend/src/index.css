@@ -1,18 +1,18 @@
-/* Import Inter font family */
+ 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import './styles/design-system.css';
 
+ 
+@import './styles/chat-animations.css';
+
+ 
+@import './styles/animations.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import Design System Utilities */
-@import './styles/design-system.css';
+ 
 
-/* Import Chat Animations */
-@import './styles/chat-animations.css';
-
-/* Import Modern Animations */
-@import './styles/animations.css';
 
 /* CSS Custom Properties for Design System */
 :root {

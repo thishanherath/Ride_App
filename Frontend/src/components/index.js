@@ -10,6 +10,9 @@ import SelectVehicle from "./SelectVehicle";
 import Spinner from "./Spinner";
 import Sidebar from "./Sidebar";
 import VerifyEmail from "./VerifyEmail";
+import RatingModal from "./RatingModal";
+import FeedbackModal from "./FeedbackModal";
+import RatingDisplay from "./RatingDisplay";
 
 // Layout Components
 export * from "./layout";
@@ -36,4 +39,7 @@ export {
   Sidebar,
   Spinner,
   VerifyEmail,
+  RatingModal,
+  FeedbackModal,
+  RatingDisplay,
 };
