@@ -8,7 +8,7 @@ import {
 } from "../components";
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { Card, Input, Button } from "../components/ui";
-import { MenuIcon, MapPinIcon, Navigation2Icon } from "lucide-react";
+import { MenuIcon, MapPinIcon, Navigation2Icon, Map } from "lucide-react";
 import axios from "axios";
 import debounce from "lodash.debounce";
 import { SocketDataContext } from "../contexts/SocketContext";
@@ -438,6 +438,20 @@ function UserHomeScreen() {
                   animate={true}
                 />
               </div>
+            </div>
+
+            {/* Map Button */}
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full micro-lift"
+                onClick={() => navigateTo('/map')}
+                icon={<Map className="w-5 h-5" />}
+                animate={true}
+              >
+                Open Full Map
+              </Button>
             </div>
 
             {/* Search Button with Enhanced Animation */}

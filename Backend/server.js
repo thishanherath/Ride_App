@@ -16,6 +16,9 @@ const captainRoutes = require("./routes/captain.routes");
 const mapsRoutes = require("./routes/maps.routes");
 const rideRoutes = require("./routes/ride.routes");
 const mailRoutes = require("./routes/mail.routes");
+const adminRoutes = require("./routes/admin.routes");
+const ratingRoutes = require("./routes/rating.routes");
+const feedbackRoutes = require("./routes/feedback.routes");
 const keepServerRunning = require("./services/active.service");
 const dbStream = require("./services/logging.service");
 require("./config/db");
@@ -52,6 +55,9 @@ app.use("/captain", captainRoutes);
 app.use("/map", mapsRoutes);
 app.use("/ride", rideRoutes);
 app.use("/mail", mailRoutes);
+app.use("/admin", adminRoutes);
+app.use("/rating", ratingRoutes);
+app.use("/feedback", feedbackRoutes);
 
 server.listen(PORT, () => {
   console.log("Server is listening on port", PORT);

@@ -18,7 +18,11 @@ import {
   ChatScreen,
   VerifyEmail,
   ResetPassword,
-  ForgotPassword
+  ForgotPassword,
+  AdminLogin,
+  AdminDashboard,
+  AdminUsers,
+  MapScreen
 } from "./screens/";
 import { logger } from "./utils/logger";
 import { SocketDataContext } from "./contexts/SocketContext";
@@ -114,13 +118,20 @@ function App() {
               <Route path="/:userType/forgot-password/" element={<ForgotPassword />} />
               <Route path="/:userType/reset-password/" element={<ResetPassword />} />
 
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+
+              {/* Map Routes */}
+              <Route path="/map" element={<MapScreen />} />
+
               <Route path="*" element={<Error />} />
             </Routes>
           </PageTransition>
         </BrowserRouter>
+        </div>
       </div>
-      
-    </div> 
     </ThemeProvider>
   );
 }

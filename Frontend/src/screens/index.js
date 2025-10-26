@@ -25,6 +25,12 @@ import VerifyEmail from "./VerifyEmail";
 import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
 
+// Admin screens
+import AdminLogin from "./AdminLogin";
+import AdminDashboard from "./AdminDashboard";
+import AdminUsers from "./AdminUsers";
+import MapScreen from "./MapScreen";
+
 export {
   GetStarted,
   UserSignup,
@@ -44,5 +50,9 @@ export {
   ChatScreen,
   VerifyEmail,
   ResetPassword,
-  ForgotPassword
+  ForgotPassword,
+  AdminLogin,
+  AdminDashboard,
+  AdminUsers,
+  MapScreen
 };
