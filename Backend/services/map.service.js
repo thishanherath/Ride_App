@@ -1,31 +1,15 @@
 const axios = require("axios");
 const captainModel = require("../models/captain.model");
+const openStreetMapService = require("./openstreetmap.service");
 
 /**
- * Validates Google Maps API key
- */
-const validateApiKey = () => {
-  const apiKey = process.env.GOOGLE_MAPS_API;
-  
-  if (!apiKey) {
-    throw new Error('Google Maps API key is not configured. Please set GOOGLE_MAPS_API in your environment variables.');
-  }
-  
-  if (apiKey === 'YOUR_REAL_API_KEY_HERE') {
-    throw new Error('Google Maps API key is still set to placeholder value. Please configure a real API key.');
-  }
-  
-  return apiKey;
-};
-
-/**
- * Rate limiter for API requests
+ * Rate limiter for API requests (lighter for free services)
  */
 class ApiRateLimiter {
   constructor() {
     this.requests = [];
-    this.maxRequestsPerSecond = 10;
-    this.maxRequestsPerMinute = 600;
+    this.maxRequestsPerSecond = 5; // Conservative for free services
+    this.maxRequestsPerMinute = 300;
   }
 
   canMakeRequest() {
@@ -54,7 +38,7 @@ class ApiRateLimiter {
 
   async waitForRateLimit() {
     while (!this.canMakeRequest()) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
     this.recordRequest();
   }
@@ -69,40 +53,19 @@ module.exports.getAddressCoordinate = async (address) => {
 
   await rateLimiter.waitForRateLimit();
   
-  const apiKey = validateApiKey();
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-    address.trim()
-  )}&key=${apiKey}&region=LK&language=en`;
-
   try {
-    const response = await axios.get(url, {
-      timeout: 10000, // 10 second timeout
-      headers: {
-        'User-Agent': 'QuickRide-Backend/1.0'
-      }
-    });
+    const result = await openStreetMapService.geocodeAddress(address.trim());
     
-    if (response.data.status === "OK" && response.data.results.length > 0) {
-      const location = response.data.results[0].geometry.location;
+    if (result.success) {
       return {
-        ltd: location.lat,
-        lng: location.lng,
-        formatted_address: response.data.results[0].formatted_address
+        ltd: result.data.latitude,
+        lng: result.data.longitude,
+        formatted_address: result.data.display_name
       };
-    } else if (response.data.status === "ZERO_RESULTS") {
-      throw new Error("No results found for the given address");
-    } else if (response.data.status === "OVER_QUERY_LIMIT") {
-      throw new Error("API quota exceeded. Please try again later.");
-    } else if (response.data.status === "REQUEST_DENIED") {
-      throw new Error("API request denied. Please check your API key configuration.");
     } else {
-      throw new Error(`Geocoding failed: ${response.data.status} - ${response.data.error_message || 'Unknown error'}`);
+      throw new Error(result.error || "No results found for the given address");
     }
   } catch (error) {
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('Request timeout. Please try again.');
-    }
-    
     console.error('Geocoding error:', error.message);
     throw error;
   }
@@ -119,49 +82,30 @@ module.exports.getDistanceTime = async (origin, destination) => {
 
   await rateLimiter.waitForRateLimit();
   
-  const apiKey = validateApiKey();
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-    origin.trim()
-  )}&destinations=${encodeURIComponent(destination.trim())}&key=${apiKey}&units=metric&mode=driving&traffic_model=best_guess&departure_time=now&language=en`;
-
   try {
-    const response = await axios.get(url, {
-      timeout: 15000, // 15 second timeout
-      headers: {
-        'User-Agent': 'QuickRide-Backend/1.0'
-      }
-    });
+    const result = await openStreetMapService.getDistanceAndDuration(origin.trim(), destination.trim());
     
-    if (response.data.status === "OK") {
-      const element = response.data.rows[0].elements[0];
-      
-      if (element.status === "ZERO_RESULTS") {
-        throw new Error("No routes found between the specified locations");
-      } else if (element.status === "NOT_FOUND") {
-        throw new Error("One or both locations could not be found");
-      } else if (element.status !== "OK") {
-        throw new Error(`Route calculation failed: ${element.status}`);
-      }
-
+    if (result.success) {
       return {
-        distance: element.distance,
-        duration: element.duration,
-        duration_in_traffic: element.duration_in_traffic || element.duration,
-        status: element.status
+        distance: {
+          text: result.data.distance.text,
+          value: result.data.distance.meters
+        },
+        duration: {
+          text: result.data.duration.text,
+          value: result.data.duration.seconds
+        },
+        duration_in_traffic: {
+          text: result.data.duration.text,
+          value: result.data.duration.seconds
+        },
+        status: "OK"
       };
-    } else if (response.data.status === "OVER_QUERY_LIMIT") {
-      throw new Error("API quota exceeded. Please try again later.");
-    } else if (response.data.status === "REQUEST_DENIED") {
-      throw new Error("API request denied. Please check your API key configuration.");
     } else {
-      throw new Error(`Distance Matrix API failed: ${response.data.status} - ${response.data.error_message || 'Unknown error'}`);
+      throw new Error(result.error || "Route calculation failed");
     }
   } catch (error) {
-    if (error.code === 'ECONNABORTED') {
-      throw new Error('Request timeout. Please try again.');
-    }
-    
-    console.error('Distance Matrix error:', error.message);
+    console.error('Distance calculation error:', error.message);
     throw error;
   }
 };
@@ -171,19 +115,20 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
     throw new Error("query is required");
   }
 
-  const apiKey = process.env.GOOGLE_MAPS_API;
-  const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-    input
-  )}&key=${apiKey}`;
+  await rateLimiter.waitForRateLimit();
 
   try {
-    const response = await axios.get(url);
-    if (response.data.status === "OK") {
-      return response.data.predictions
-        .map((prediction) => prediction.description)
+    const result = await openStreetMapService.searchPlaces(input, {
+      limit: 5,
+      countrycode: 'lk' // Sri Lanka - adjust as needed
+    });
+    
+    if (result.success) {
+      return result.data
+        .map((place) => place.display_name)
         .filter((value) => value);
     } else {
-      throw new Error("Unable to fetch suggestions");
+      throw new Error(result.error || "Unable to fetch suggestions");
     }
   } catch (err) {
     console.log(err.message);

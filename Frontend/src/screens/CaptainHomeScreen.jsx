@@ -106,7 +106,7 @@ function CaptainHomeScreen() {
       if (rideToAccept._id != "") {
         setLoading(true);
         const response = await axios.post(
-          `${import.meta.env.VITE_SERVER_URL}/ride/confirm`,
+          `${import.meta.env.VITE_SERVER_URL}/ride/captain/accept`,
           { rideId: rideToAccept._id },
           {
             headers: {
@@ -130,6 +130,14 @@ function CaptainHomeScreen() {
         );
         Console.log(response);
         showAlert('Ride Accepted!', 'You have successfully accepted the ride. Please proceed to pickup location.', 'success');
+        
+        // Store ride details and OTP
+        if (response.data.success && response.data.otp) {
+          localStorage.setItem("rideOTP", response.data.otp);
+          localStorage.setItem("rideDetails", JSON.stringify(response.data.ride));
+          localStorage.setItem("showPanel", JSON.stringify(true));
+          localStorage.setItem("showBtn", JSON.stringify("otp"));
+        }
       }
     } catch (error) {
       setLoading(false);
@@ -143,10 +151,14 @@ function CaptainHomeScreen() {
 
   const verifyOTP = async () => {
     try {
-      if (newRide._id != "" && otp.length == 6) {
+      if (newRide._id != "" && otp.length >= 4) {
         setLoading(true);
-        const response = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/ride/start-ride?rideId=${newRide._id}&otp=${otp}`,
+        const response = await axios.post(
+          `${import.meta.env.VITE_SERVER_URL}/ride/captain/start`,
+          { 
+            rideId: newRide._id, 
+            otp: otp 
+          },
           {
             headers: {
               token: token,
@@ -158,11 +170,60 @@ function CaptainHomeScreen() {
         );
         setShowBtn("end-ride");
         setLoading(false);
+        setError("");
         Console.log(response);
+        showAlert('Ride Started!', 'The ride has been started successfully. Navigate to destination.', 'success');
+        
+        // Update stored data
+        localStorage.setItem("showBtn", JSON.stringify("end-ride"));
       }
     } catch (err) {
       setLoading(false);
-      setError("Invalid OTP");
+      setError(err.response?.data?.message || "Invalid OTP");
+      Console.log(err);
+    }
+  };
+
+  const cancelRide = async (reason = "Captain cancelled") => {
+    try {
+      if (newRide._id != "") {
+        setLoading(true);
+        const response = await axios.post(
+          `${import.meta.env.VITE_SERVER_URL}/ride/captain/cancel`,
+          {
+            rideId: newRide._id,
+            reason: reason
+          },
+          {
+            headers: {
+              token: token,
+            },
+          }
+        );
+        
+        setMapLocation(
+          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng}&output=embed`
+        );
+        setShowBtn("accept");
+        setLoading(false);
+        setShowCaptainDetailsPanel(true);
+        setShowNewRidePanel(false);
+        setNewRide(defaultRideData);
+        setOtp("");
+        setError("");
+        
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("showPanel");
+        localStorage.removeItem("showBtn");
+        localStorage.removeItem("rideOTP");
+        
+        Console.log(response);
+        showAlert('Ride Cancelled', 'The ride has been cancelled successfully.', 'info');
+      }
+    } catch (err) {
+      setLoading(false);
+      showAlert('Error', err.response?.data?.message || 'Failed to cancel ride', 'failure');
       Console.log(err);
     }
   };
@@ -171,8 +232,8 @@ function CaptainHomeScreen() {
     try {
       if (newRide._id != "") {
         setLoading(true);
-        await axios.post(
-          `${import.meta.env.VITE_SERVER_URL}/ride/end-ride`,
+        const response = await axios.post(
+          `${import.meta.env.VITE_SERVER_URL}/ride/captain/end`,
           {
             rideId: newRide._id,
           },
@@ -190,11 +251,21 @@ function CaptainHomeScreen() {
         setShowCaptainDetailsPanel(true);
         setShowNewRidePanel(false);
         setNewRide(defaultRideData);
+        setOtp("");
+        setError("");
+        
+        // Clear stored data
         localStorage.removeItem("rideDetails");
         localStorage.removeItem("showPanel");
+        localStorage.removeItem("showBtn");
+        localStorage.removeItem("rideOTP");
+        
+        Console.log(response);
+        showAlert('Ride Completed!', 'The ride has been completed successfully. Great job!', 'success');
       }
     } catch (err) {
       setLoading(false);
+      showAlert('Error', err.response?.data?.message || 'Failed to end ride', 'failure');
       Console.log(err);
     }
   };
