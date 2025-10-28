@@ -1,0 +1,90 @@
+/* Loading Spinner Component Styles */
+.ds-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-spinner__svg {
+  display: block;
+}
+
+.ds-spinner__track {
+  opacity: 0.25;
+}
+
+.ds-spinner__indicator {
+  opacity: 0.75;
+}
+
+/* Spinner Sizes */
+.ds-spinner--xs {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ds-spinner--xs .ds-spinner__svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ds-spinner--sm {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.ds-spinner--sm .ds-spinner__svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.ds-spinner--md {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ds-spinner--md .ds-spinner__svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ds-spinner--lg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.ds-spinner--lg .ds-spinner__svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.ds-spinner--xl {
+  width: 3rem;
+  height: 3rem;
+}
+
+.ds-spinner--xl .ds-spinner__svg {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Spinner Colors */
+.ds-spinner--primary {
+  color: var(--primary-orange);
+}
+
+.ds-spinner--secondary {
+  color: var(--text-secondary);
+}
+
+.ds-spinner--white {
+  color: white;
+}
+
+.ds-spinner--success {
+  color: var(--text-success);
+}
+
+.ds-spinner--muted {
+  color: var(--text-muted);
+}

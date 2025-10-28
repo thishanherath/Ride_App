@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, X, ThumbsUp, Clock, Car, MessageCircle, Shield } from "lucide-react";
 import { Button } from "./ui";
+import { formatCurrency } from "../utils/currency";
 import axios from "axios";
 import Console from "../utils/console";
 
@@ -131,7 +132,7 @@ function RatingModal({ isOpen, onClose, ride, onRatingSubmitted }) {
                 <p className="font-medium text-gray-900">
                   {ride.pickup} → {ride.destination}
                 </p>
-                <p className="text-sm text-gray-600">₹{ride.fare}</p>
+                <p className="text-sm text-gray-600">{formatCurrency(ride.fare)}</p>
               </div>
             </div>
           </div>

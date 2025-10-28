@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import Card from "../components/ui/Card";
 import { NoRidesEmpty } from "../components/ui/EmptyState";
 import { StatusBadge } from "../components/ui/Badge";
+import { formatCurrency } from "../utils/currency";
 
 function RideHistory() {
   const navigation = useNavigate();
@@ -247,7 +248,7 @@ export const ModernRideCard = ({ ride }) => {
             <StatusBadge status={getRideStatus(ride)} />
             <div className="flex items-center gap-1 text-lg font-semibold text-gray-900">
               <CreditCard className="w-4 h-4 text-gray-500" />
-              ₹{ride.fare}
+              {formatCurrency(ride.fare)}
             </div>
           </div>
         </div>

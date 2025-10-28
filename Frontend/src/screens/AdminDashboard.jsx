@@ -16,6 +16,7 @@ import {
   Calendar
 } from "lucide-react";
 import { Card, Button } from "../components/ui";
+import { formatCurrency } from "../utils/currency";
 import axios from "axios";
 import Console from "../utils/console";
 
@@ -257,7 +258,7 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">₹{ride.fare}</p>
+                    <p className="font-semibold text-gray-900">{formatCurrency(ride.fare)}</p>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       ride.status === 'completed' ? 'bg-green-100 text-green-800' :
                       ride.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
@@ -308,7 +309,7 @@ function AdminDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">{captain.totalRides} rides</p>
-                    <p className="text-sm text-gray-600">₹{captain.totalEarnings}</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(captain.totalEarnings)}</p>
                   </div>
                 </motion.div>
               ))}

@@ -64,8 +64,7 @@ const adminSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for better performance
-adminSchema.index({ email: 1 });
+// Index for better performance (email index is automatically created by unique: true)
 adminSchema.index({ role: 1 });
 adminSchema.index({ isActive: 1 });
 

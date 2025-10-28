@@ -1,26 +1,40 @@
 const mongoose = require("mongoose");
 
-const MONGO_DB = {
-  production: { url: process.env.MONGODB_PROD_URL, type: "Atlas" },
-  development: { url: process.env.MONGODB_DEV_URL, type: "Compass" },
+// Simple and clean MongoDB Atlas connection
+const connectDB = async () => {
+  try {
+    const mongoUrl = process.env.MONGODB_URL;
+    
+    if (!mongoUrl) {
+      throw new Error("MONGODB_URL not found in environment variables");
+    }
+
+    console.log("🔄 Connecting to MongoDB Atlas...");
+    
+    // Clean connection options (removed unsupported options)
+    const options = {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 10000,
+    };
+
+    await mongoose.connect(mongoUrl, options);
+    
+    console.log("✅ Connected to MongoDB Atlas successfully");
+    
+  } catch (error) {
+    console.error("❌ MongoDB Atlas connection failed:", error.message);
+    console.log("⚠️  Server will continue without database");
+    
+    if (error.message.includes('Authentication failed')) {
+      console.log("💡 Check your username and password in the connection string");
+    } else if (error.message.includes('ENOTFOUND')) {
+      console.log("💡 Check your Atlas cluster URL and internet connection");
+    }
+  }
 };
 
-// default to development when ENVIRONMENT is not set or invalid
-const environment = process.env.ENVIRONMENT && MONGO_DB[process.env.ENVIRONMENT] ? process.env.ENVIRONMENT : 'development';
-
-const mongoUrl = MONGO_DB[environment].url;
-
-if (!mongoUrl) {
-  console.error(`MongoDB connection string for environment '${environment}' is not set. Check your .env file.`);
-} else {
-  mongoose
-    .connect(mongoUrl)
-    .then(() => {
-      console.log("Connected to MongoDB (", MONGO_DB[environment].type, ") ->", mongoUrl);
-    })
-    .catch((err) => {
-      console.error("Failed to connect to MongoDB:", err && err.message ? err.message : err);
-    });
-}
+// Connect to database
+connectDB();
 
 module.exports = mongoose.connection;

@@ -20,22 +20,24 @@ const getFare = async (pickup, destination) => {
     };
   }
 
+  // Sri Lankan Rupee (LKR) pricing structure
+  // Rates are set for the Sri Lankan market
   const baseFare = {
-    auto: 30,
-    car: 50,
-    bike: 20,
+    auto: 150,    // Base fare for auto-rickshaw in LKR
+    car: 250,     // Base fare for car in LKR  
+    bike: 100,    // Base fare for motorcycle in LKR
   };
 
   const perKmRate = {
-    auto: 10,
-    car: 15,
-    bike: 8,
+    auto: 50,     // Per kilometer rate for auto in LKR
+    car: 75,      // Per kilometer rate for car in LKR
+    bike: 40,     // Per kilometer rate for motorcycle in LKR
   };
 
   const perMinuteRate = {
-    auto: 2,
-    car: 3,
-    bike: 1.5,
+    auto: 10,     // Per minute rate for auto in LKR
+    car: 15,      // Per minute rate for car in LKR
+    bike: 7.5,    // Per minute rate for motorcycle in LKR
   };
 
   const fare = {

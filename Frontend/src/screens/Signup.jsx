@@ -167,7 +167,7 @@ function Signup() {
         <motion.form
           key={activeTab}
           onSubmit={handleSubmit(signupUser)}
-          className="space-y-6"
+          className="spacing-responsive-md"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -177,7 +177,7 @@ function Signup() {
           {!showVehiclePanel && (
             <>
               {/* Name Fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <Input
                   label="First name"
                   placeholder="John"
@@ -334,7 +334,7 @@ function Signup() {
               </div>
 
               {/* Vehicle Details */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <Input
                   label="Vehicle Color"
                   placeholder="Red"

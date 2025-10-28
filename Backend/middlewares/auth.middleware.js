@@ -80,6 +80,7 @@ module.exports.authCaptain = async (req, res, next) => {
       emailVerified: captain.emailVerified,
       vehicle: captain.vehicle,
       status: captain.status,
+      location: captain.location, // Add location field
     };
     req.userType = "captain";
     next();

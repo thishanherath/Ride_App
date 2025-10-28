@@ -3,6 +3,7 @@ import Button from "./Button";
 import Heading from "./Heading";
 import Input from "./Input";
 import LocationSuggestions from "./LocationSuggestions";
+import LocationPermission from "./LocationPermission";
 import NewRide from "./NewRide";
 import RideDetails from "./RideDetails";
 import RideTracker from "./RideTracker";
@@ -32,6 +33,7 @@ export {
   Heading,
   Input,
   LocationSuggestions,
+  LocationPermission,
   NewRide,
   RideDetails,
   RideTracker,

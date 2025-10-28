@@ -1,0 +1,161 @@
+/* Card Component Styles */
+.ds-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-card:focus-visible {
+  outline: 2px solid var(--primary-orange);
+  outline-offset: 2px;
+}
+
+/* Card Variants */
+.ds-card--default {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+}
+
+.ds-card--elevated {
+  background: var(--bg-card);
+  border: none;
+}
+
+.ds-card--outlined {
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+}
+
+.ds-card--filled {
+  background: var(--bg-secondary);
+  border-color: var(--border-light);
+}
+
+.ds-card--gradient {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+  border-color: var(--border-light);
+}
+
+/* Card Padding */
+.ds-card--padding-none {
+  padding: 0;
+}
+
+.ds-card--padding-sm {
+  padding: var(--space-3);
+}
+
+.ds-card--padding-default {
+  padding: var(--card-padding);
+}
+
+.ds-card--padding-lg {
+  padding: var(--space-6);
+}
+
+.ds-card--padding-xl {
+  padding: var(--space-8);
+}
+
+/* Card Shadows */
+.ds-card--shadow-none {
+  box-shadow: none;
+}
+
+.ds-card--shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.ds-card--shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.ds-card--shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.ds-card--shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+
+/* Card States */
+.ds-card--hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-medium);
+}
+
+.ds-card--selected {
+  border-color: var(--border-selected);
+  background: var(--bg-selected);
+  box-shadow: 0 0 0 1px var(--primary-orange);
+}
+
+.ds-card--clickable {
+  cursor: pointer;
+}
+
+.ds-card--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.ds-card--clickable:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Card Content Areas */
+.ds-card__header {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-4);
+}
+
+.ds-card__body {
+  flex: 1;
+}
+
+.ds-card__footer {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
+  margin-top: var(--space-4);
+}
+
+.ds-card__title {
+  font-size: var(--heading-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.ds-card__subtitle {
+  font-size: var(--body-md);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ds-card__description {
+  font-size: var(--body-md);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .ds-card--padding-default {
+    padding: var(--space-4);
+  }
+  
+  .ds-card--padding-lg {
+    padding: var(--space-5);
+  }
+  
+  .ds-card--padding-xl {
+    padding: var(--space-6);
+  }
+}
