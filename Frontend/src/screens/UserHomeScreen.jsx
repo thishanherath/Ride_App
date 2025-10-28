@@ -5,14 +5,17 @@ import {
   LocationSuggestions,
   SelectVehicle,
   RideDetails,
+  LocationPermission,
 } from "../components";
+
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { Card, Input, Button } from "../components/ui";
-import { MenuIcon, MapPinIcon, Navigation2Icon, Map } from "lucide-react";
+import { MenuIcon, MapPinIcon, Navigation2Icon, Map, RefreshCw } from "lucide-react";
 import axios from "axios";
 import debounce from "lodash.debounce";
 import { SocketDataContext } from "../contexts/SocketContext";
 import { useNavigation } from "../hooks/useNavigation";
+import { useGeolocation } from "../hooks/useGeolocation";
 import Console from "../utils/console";
 
 function UserHomeScreen() {
@@ -35,6 +38,28 @@ function UserHomeScreen() {
   const [locationSuggestion, setLocationSuggestion] = useState([]);
   const [mapLocation, setMapLocation] = useState("");
   const [rideCreated, setRideCreated] = useState(false);
+
+  // Enhanced geolocation with real-time tracking
+  const {
+    location,
+    error: locationError,
+    loading: locationLoading,
+    permissionStatus,
+    getCurrentPosition,
+    watchPosition,
+    clearWatch,
+    getMapUrl,
+    hasLocation,
+    isLocationStale
+  } = useGeolocation({
+    enableHighAccuracy: true,
+    timeout: 15000, // 15 seconds
+    maximumAge: 60000, // 1 minute for real-time updates
+    autoRequest: true
+  });
+
+  const [watchId, setWatchId] = useState(null);
+  const [showLocationPermission, setShowLocationPermission] = useState(false);
 
   // Ride details
   const [pickupLocation, setPickupLocation] = useState("");
@@ -151,10 +176,12 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
-      // Automatically cancel the ride after 1.5 minutes
+      // Automatically cancel the ride after 5 minutes (300000ms) if no driver accepts
+      const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000; // 5 minutes fallback
       rideTimeout.current = setTimeout(() => {
+        console.log('🕐 Ride timeout reached, cancelling ride automatically');
         cancelRide();
-      }, import.meta.env.VITE_RIDE_TIMEOUT);
+      }, timeoutDuration);
       
     } catch (error) {
       Console.log(error);
@@ -210,39 +237,97 @@ function UserHomeScreen() {
     setRideCreated(false);
   };
 
-  // Update Location
-  const updateLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setMapLocation(
-            `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
-          );
-        },
-        (error) => {
-          console.error("Error fetching position:", error);
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              console.error("User denied the request for Geolocation.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              console.error("Location information is unavailable.");
-              break;
-            case error.TIMEOUT:
-              console.error("The request to get user location timed out.");
-              break;
-            default:
-              console.error("An unknown error occurred.");
-          }
-        }
-      );
-    }
-  };
+  // Enhanced location management
+  const updateLocation = useCallback(() => {
+    console.log('🔍 Requesting current location update...');
+    getCurrentPosition();
+  }, [getCurrentPosition]);
 
-  // Update Location
-  useEffect(() => {
+  // Start real-time location tracking
+  const startLocationTracking = useCallback(() => {
+    console.log('🎯 Starting real-time location tracking...');
+    const id = watchPosition();
+    setWatchId(id);
+    return id;
+  }, [watchPosition]);
+
+  // Stop location tracking
+  const stopLocationTracking = useCallback(() => {
+    if (watchId) {
+      console.log('⏹️ Stopping location tracking...');
+      clearWatch(watchId);
+      setWatchId(null);
+    }
+  }, [watchId, clearWatch]);
+
+  // Handle location permission issues
+  const handleLocationRetry = useCallback(() => {
+    setShowLocationPermission(false);
     updateLocation();
+  }, [updateLocation]);
+
+  const handleUseDefaultLocation = useCallback(() => {
+    console.log('🔄 Using default location (Colombo, Sri Lanka)');
+    setMapLocation('https://www.google.com/maps?q=6.9271,79.8612&output=embed');
+    setShowLocationPermission(false);
   }, []);
+
+  // Handle location updates
+  useEffect(() => {
+    if (hasLocation) {
+      console.log('✅ Location updated:', {
+        lat: location.latitude,
+        lng: location.longitude,
+        accuracy: location.accuracy,
+        isFallback: location.isFallback
+      });
+      
+      const mapUrl = getMapUrl();
+      setMapLocation(mapUrl);
+      setShowLocationPermission(false);
+    }
+  }, [location, hasLocation, getMapUrl]);
+
+  // Handle location errors and permissions
+  useEffect(() => {
+    if (locationError) {
+      console.error('❌ Location error:', locationError);
+      
+      // Show permission dialog for certain errors
+      if (locationError.code === 'PERMISSION_DENIED' || 
+          locationError.code === 'NOT_SUPPORTED' ||
+          permissionStatus === 'denied') {
+        setShowLocationPermission(true);
+      }
+    }
+  }, [locationError, permissionStatus]);
+
+  // Start real-time tracking when component mounts
+  useEffect(() => {
+    console.log('🚀 Initializing location services...');
+    
+    // Start watching location for real-time updates
+    const trackingId = startLocationTracking();
+    
+    // Cleanup on unmount
+    return () => {
+      if (trackingId) {
+        clearWatch(trackingId);
+      }
+    };
+  }, [startLocationTracking, clearWatch]);
+
+  // Handle permission status changes
+  useEffect(() => {
+    console.log('🔐 Permission status:', permissionStatus);
+    
+    if (permissionStatus === 'denied') {
+      setShowLocationPermission(true);
+    } else if (permissionStatus === 'granted' && !hasLocation) {
+      // Permission granted but no location yet, try to get it
+      updateLocation();
+    }
+  }, [permissionStatus, hasLocation, updateLocation]);
 
   // Socket Events
   useEffect(() => {
@@ -281,18 +366,8 @@ function UserHomeScreen() {
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setMapLocation(
-              `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
-            );
-          },
-          (error) => {
-            console.error("Error fetching position:", error);
-          }
-        );
-      }
+      // Refresh location after ride ends
+      updateLocation();
     });
   }, [user]);
 
@@ -512,6 +587,23 @@ function UserHomeScreen() {
         rideCreated={rideCreated}
         confirmedRideData={confirmedRideData}
       />
+
+      {/* Location Permission Modal */}
+      {showLocationPermission && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <LocationPermission
+              permissionStatus={permissionStatus}
+              error={locationError}
+              onRetry={handleLocationRetry}
+              onUseDefault={handleUseDefaultLocation}
+              loading={locationLoading}
+            />
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

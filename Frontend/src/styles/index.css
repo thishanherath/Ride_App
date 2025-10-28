@@ -1,0 +1,270 @@
+/* Design System Entry Point */
+/* Import design system foundation and component styles */
+
+/* Design System Foundation */
+@import './design-system.css';
+
+/* Component Styles */
+@import '../components/ui/Button.css';
+@import '../components/ui/Card.css';
+@import '../components/ui/LoadingSpinner.css';
+
+/* Global Design System Utilities */
+.ds-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.ds-container--sm {
+  max-width: 640px;
+}
+
+.ds-container--md {
+  max-width: 768px;
+}
+
+.ds-container--lg {
+  max-width: 1024px;
+}
+
+.ds-container--xl {
+  max-width: 1280px;
+}
+
+/* Responsive Grid System */
+.ds-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ds-grid--cols-1 {
+  grid-template-columns: 1fr;
+}
+
+.ds-grid--cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.ds-grid--cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ds-grid--cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ds-grid--cols-2,
+  .ds-grid--cols-3,
+  .ds-grid--cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .ds-container {
+    padding: 0 var(--space-3);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ds-grid--cols-3,
+  .ds-grid--cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Flex Utilities */
+.ds-flex {
+  display: flex;
+}
+
+.ds-flex--center {
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-flex--between {
+  justify-content: space-between;
+}
+
+.ds-flex--around {
+  justify-content: space-around;
+}
+
+.ds-flex--column {
+  flex-direction: column;
+}
+
+.ds-flex--wrap {
+  flex-wrap: wrap;
+}
+
+/* Spacing Utilities */
+.ds-space-y-1 > * + * {
+  margin-top: var(--space-1);
+}
+
+.ds-space-y-2 > * + * {
+  margin-top: var(--space-2);
+}
+
+.ds-space-y-3 > * + * {
+  margin-top: var(--space-3);
+}
+
+.ds-space-y-4 > * + * {
+  margin-top: var(--space-4);
+}
+
+.ds-space-y-6 > * + * {
+  margin-top: var(--space-6);
+}
+
+.ds-space-x-1 > * + * {
+  margin-left: var(--space-1);
+}
+
+.ds-space-x-2 > * + * {
+  margin-left: var(--space-2);
+}
+
+.ds-space-x-3 > * + * {
+  margin-left: var(--space-3);
+}
+
+.ds-space-x-4 > * + * {
+  margin-left: var(--space-4);
+}
+
+/* Typography Utilities */
+.ds-text-xs {
+  font-size: var(--body-sm);
+}
+
+.ds-text-sm {
+  font-size: var(--body-md);
+}
+
+.ds-text-base {
+  font-size: var(--body-lg);
+}
+
+.ds-text-lg {
+  font-size: var(--heading-md);
+}
+
+.ds-text-xl {
+  font-size: var(--heading-lg);
+}
+
+.ds-text-2xl {
+  font-size: var(--heading-xl);
+}
+
+.ds-font-normal {
+  font-weight: var(--font-regular);
+}
+
+.ds-font-medium {
+  font-weight: var(--font-medium);
+}
+
+.ds-font-semibold {
+  font-weight: var(--font-semibold);
+}
+
+.ds-font-bold {
+  font-weight: var(--font-bold);
+}
+
+.ds-text-primary {
+  color: var(--text-primary);
+}
+
+.ds-text-secondary {
+  color: var(--text-secondary);
+}
+
+.ds-text-muted {
+  color: var(--text-muted);
+}
+
+.ds-text-success {
+  color: var(--text-success);
+}
+
+.ds-text-center {
+  text-align: center;
+}
+
+.ds-text-left {
+  text-align: left;
+}
+
+.ds-text-right {
+  text-align: right;
+}
+
+/* Background Utilities */
+.ds-bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.ds-bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.ds-bg-card {
+  background-color: var(--bg-card);
+}
+
+.ds-bg-selected {
+  background-color: var(--bg-selected);
+}
+
+/* Border Utilities */
+.ds-border {
+  border: 1px solid var(--border-light);
+}
+
+.ds-border-medium {
+  border: 1px solid var(--border-medium);
+}
+
+.ds-border-selected {
+  border: 1px solid var(--border-selected);
+}
+
+.ds-rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.ds-rounded {
+  border-radius: var(--radius-md);
+}
+
+.ds-rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.ds-rounded-xl {
+  border-radius: var(--radius-xl);
+}
+
+/* Shadow Utilities */
+.ds-shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.ds-shadow {
+  box-shadow: var(--shadow-md);
+}
+
+.ds-shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.ds-shadow-xl {
+  box-shadow: var(--shadow-xl);
+}

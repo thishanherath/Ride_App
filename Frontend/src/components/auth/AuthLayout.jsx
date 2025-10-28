@@ -5,9 +5,9 @@ import logo from '/logo-quickride.png';
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
-      <div className="flex flex-col justify-center px-6 py-12 min-h-screen">
+      <div className="flex flex-col justify-center padding-responsive-md py-8 sm:py-12 lg:py-16 min-h-screen">
         <motion.div 
-          className="mx-auto w-full max-w-sm"
+          className="container-auth"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -23,7 +23,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
               transition={{ delay: 0.2, duration: 0.5 }}
             />
             <motion.h2 
-              className="text-3xl font-bold text-gray-900"
+              className="text-responsive-2xl font-bold text-gray-900"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
@@ -32,7 +32,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
             </motion.h2>
             {subtitle && (
               <motion.p 
-                className="mt-2 text-sm text-gray-600"
+                className="mt-2 text-responsive-sm text-gray-600"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.5 }}

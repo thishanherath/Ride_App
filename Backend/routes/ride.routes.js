@@ -47,5 +47,18 @@ router.post('/end-ride',
     rideController.endRide
 )
 
+// Get all available rides for captains
+router.get('/available-rides',
+    authMiddleware.authCaptain,
+    rideController.getAvailableRides
+)
+
+// Get rides by status for captains
+router.get('/rides-by-status',
+    authMiddleware.authCaptain,
+    query('status').optional().isIn(['pending', 'accepted', 'ongoing', 'completed', 'cancelled']).withMessage('Invalid status'),
+    query('vehicleType').optional().isIn(['auto', 'car', 'bike']).withMessage('Invalid vehicle type'),
+    rideController.getRidesByStatus
+)
 
 module.exports = router;

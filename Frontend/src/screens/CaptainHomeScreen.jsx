@@ -13,12 +13,14 @@ import {
   StatsCard, 
   EarningsCard, 
   VehicleInfoCard, 
-  ModernNewRide 
+  ModernNewRide,
+  AvailableRides 
 } from "../components/captain";
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { useNavigation } from "../hooks/useNavigation";
 import Console from "../utils/console";
 import { useAlert } from "../hooks/useAlert";
+import { useAvailableRides } from "../hooks/useAvailableRides";
 import { Alert } from "../components";
 
 const defaultRideData = {
@@ -56,14 +58,18 @@ function CaptainHomeScreen() {
   } = useNavigation();
   const [loading, setLoading] = useState(false);
   const { alert, showAlert, hideAlert } = useAlert();
+  const { 
+    rides: availableRides, 
+    newRidesCount, 
+    markRidesAsViewed,
+    getRideStats 
+  } = useAvailableRides();
 
   const [riderLocation, setRiderLocation] = useState({
     ltd: null,
     lng: null,
   });
-  const [mapLocation, setMapLocation] = useState(
-    `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng}&output=embed`
-  );
+  const [mapLocation, setMapLocation] = useState("");
   const [earnings, setEarnings] = useState({
     total: 0,
     today: 0,
@@ -89,33 +95,45 @@ function CaptainHomeScreen() {
   const [showNewRidePanel, setShowNewRidePanel] = useState(
     JSON.parse(localStorage.getItem("showPanel")) || false
   );
+  const [showAvailableRidesPanel, setShowAvailableRidesPanel] = useState(false);
   const [showBtn, setShowBtn] = useState(
     JSON.parse(localStorage.getItem("showBtn")) || "accept"
   );
 
-  const acceptRide = async () => {
+  const acceptRide = async (rideData = null) => {
     try {
-      if (newRide._id != "") {
+      const rideToAccept = rideData || newRide;
+      if (rideToAccept._id != "") {
         setLoading(true);
         const response = await axios.post(
           `${import.meta.env.VITE_SERVER_URL}/ride/confirm`,
-          { rideId: newRide._id },
+          { rideId: rideToAccept._id },
           {
             headers: {
               token: token,
             },
           }
         );
+        
+        // If accepting from available rides, update the current ride
+        if (rideData) {
+          setNewRide(rideData);
+          setShowAvailableRidesPanel(false);
+          setShowNewRidePanel(true);
+          setShowCaptainDetailsPanel(false);
+        }
+        
         setLoading(false);
         setShowBtn("otp");
         setMapLocation(
-          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${newRide.pickup}&output=embed`
+          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${rideToAccept.pickup}&output=embed`
         );
         Console.log(response);
+        showAlert('Ride Accepted!', 'You have successfully accepted the ride. Please proceed to pickup location.', 'success');
       }
     } catch (error) {
       setLoading(false);
-      showAlert('Some error occured', error.response.data.message, 'failure');
+      showAlert('Error', error.response?.data?.message || 'Failed to accept ride', 'failure');
       Console.log(error.response);
       setTimeout(() => {
         clearRideData();
@@ -182,10 +200,16 @@ function CaptainHomeScreen() {
   };
 
   const updateLocation = () => {
+    console.log('🔍 Requesting current location...');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // Console.log(position);
+          console.log('✅ Location obtained:', {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+          
           setRiderLocation({
             ltd: position.coords.latitude,
             lng: position.coords.longitude,
@@ -194,30 +218,65 @@ function CaptainHomeScreen() {
           setMapLocation(
             `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
           );
-          socket.emit("update-location-captain", {
-            userId: captain._id,
-            location: {
-              ltd: position.coords.latitude,
-              lng: position.coords.longitude,
-            },
-          });
+          
+          // Update captain location on server
+          if (captain._id) {
+            socket.emit("update-location-captain", {
+              userId: captain._id,
+              location: {
+                ltd: position.coords.latitude,
+                lng: position.coords.longitude,
+              },
+            });
+          }
         },
         (error) => {
-          console.error("Error fetching position:", error);
+          console.error("❌ Geolocation error:", error);
           switch (error.code) {
             case error.PERMISSION_DENIED:
               console.error("User denied the request for Geolocation.");
+              alert("Please enable location permissions to use this feature. You can enable it in your browser settings.");
               break;
             case error.POSITION_UNAVAILABLE:
               console.error("Location information is unavailable.");
+              alert("Location information is unavailable. Please check your GPS and internet connection.");
               break;
             case error.TIMEOUT:
               console.error("The request to get user location timed out.");
+              alert("Location request timed out. Please try again.");
               break;
             default:
               console.error("An unknown error occurred.");
+              alert("An unknown error occurred while getting your location.");
           }
+          
+          // Use fallback location (Colombo, Sri Lanka)
+          console.log('🔄 Using fallback location: Colombo, Sri Lanka');
+          setRiderLocation({
+            ltd: 6.9271,
+            lng: 79.8612,
+          });
+          setMapLocation(
+            `https://www.google.com/maps?q=6.9271,79.8612&output=embed`
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
         }
+      );
+    } else {
+      console.error("❌ Geolocation is not supported by this browser.");
+      alert("Geolocation is not supported by this browser.");
+      
+      // Use fallback location
+      setRiderLocation({
+        ltd: 6.9271,
+        lng: 79.8612,
+      });
+      setMapLocation(
+        `https://www.google.com/maps?q=6.9271,79.8612&output=embed`
       );
     }
   };
@@ -239,8 +298,14 @@ function CaptainHomeScreen() {
         userType: "captain",
       });
 
-      // const locationInterval = setInterval(updateLocation, 10000);
-      updateLocation(); // IMP: Call this function to update location
+      // Get current location when captain logs in
+      updateLocation();
+      
+      // Update location every 30 seconds for real-time tracking
+      const locationInterval = setInterval(updateLocation, 30000);
+      
+      // Cleanup interval on unmount
+      return () => clearInterval(locationInterval);
     }
 
     socket.on("new-ride", (data) => {
@@ -252,7 +317,7 @@ function CaptainHomeScreen() {
 
     socket.on("ride-cancelled", (data) => {
       Console.log("Ride cancelled", data);
-      updateLocation();
+      updateLocation(); // Reset to current location
       clearRideData();
     });
   }, [captain]);
@@ -396,9 +461,28 @@ function CaptainHomeScreen() {
                 </p>
               </div>
             </div>
-            <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-              <Settings className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  setShowAvailableRidesPanel(!showAvailableRidesPanel);
+                  setShowCaptainDetailsPanel(!showAvailableRidesPanel);
+                  if (!showAvailableRidesPanel) {
+                    markRidesAsViewed(); // Clear notification badge when viewing rides
+                  }
+                }}
+                className="relative px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-sm font-medium"
+              >
+                {showAvailableRidesPanel ? 'Dashboard' : 'Available Rides'}
+                {newRidesCount > 0 && !showAvailableRidesPanel && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                    {newRidesCount > 9 ? '9+' : newRidesCount}
+                  </span>
+                )}
+              </button>
+              <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                <Settings className="w-6 h-6" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -452,9 +536,45 @@ function CaptainHomeScreen() {
               />
             </div>
 
+            {/* Available Rides Quick Info */}
+            {availableRides.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-4 mb-6 border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-1">
+                      {availableRides.length} Rides Available
+                    </h3>
+                    <p className="text-sm text-blue-700">
+                      {getRideStats().nearby} nearby • Avg fare: Rs. {getRideStats().averageFare}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAvailableRidesPanel(true);
+                      setShowCaptainDetailsPanel(false);
+                      markRidesAsViewed();
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Vehicle Info */}
             <VehicleInfoCard vehicle={captain?.vehicle} />
           </div>
+        </div>
+      )}
+
+      {/* Available Rides Panel */}
+      {showAvailableRidesPanel && (
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          <AvailableRides
+            onAcceptRide={acceptRide}
+            loading={loading}
+          />
         </div>
       )}
 
@@ -468,7 +588,7 @@ function CaptainHomeScreen() {
         setShowPanel={setShowNewRidePanel}
         showPreviousPanel={setShowCaptainDetailsPanel}
         loading={loading}
-        acceptRide={acceptRide}
+        acceptRide={() => acceptRide()}
         verifyOTP={verifyOTP}
         endRide={endRide}
         error={error}

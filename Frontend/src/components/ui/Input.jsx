@@ -50,10 +50,12 @@ const Input = React.forwardRef(({
       )}
       <div className="relative group">
         {icon && (
-          <div className={`absolute left-3 top-1/2 transform -translate-y-1/2 transition-all duration-200 ${
+          <div className={`absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 transition-all duration-200 ${
             isFocused ? 'text-orange-500 scale-110' : 'text-gray-400'
           }`}>
-            {icon}
+            <div className="w-4 h-4 sm:w-5 sm:h-5">
+              {icon}
+            </div>
           </div>
         )}
         <input
@@ -69,14 +71,15 @@ const Input = React.forwardRef(({
           disabled={disabled}
           required={required}
           className={`
-            w-full px-4 py-3 bg-gray-50 border-0 rounded-xl text-base
+            w-full px-3 py-2.5 sm:px-4 sm:py-3 bg-gray-50 border-0 rounded-xl 
+            text-sm sm:text-base
             focus:ring-2 focus:ring-orange-500 focus:bg-white
             transition-all duration-300 ease-out
             disabled:opacity-50 disabled:cursor-not-allowed
             placeholder:text-gray-400
             ${animate ? 'transform hover:scale-[1.02] focus:scale-[1.02]' : ''}
             ${isFocused ? 'shadow-lg' : 'shadow-sm'}
-            ${icon ? 'pl-10' : ''}
+            ${icon ? 'pl-8 sm:pl-10' : ''}
             ${error ? 'ring-2 ring-red-500 focus:ring-red-500 bg-red-50' : ''}
             ${className}
           `}
