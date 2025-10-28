@@ -8,6 +8,7 @@ import {
   LocationPermission,
 } from "../components";
 
+
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { Card, Input, Button } from "../components/ui";
 import { MenuIcon, MapPinIcon, Navigation2Icon, Map, RefreshCw } from "lucide-react";
@@ -122,9 +123,12 @@ function UserHomeScreen() {
     Console.log(pickupLocation, destinationLocation);
     try {
       setLoading(true);
+      
+      // Set map URL with proper routing directions
       setMapLocation(
-        `https://www.google.com/maps?q=${pickupLocation} to ${destinationLocation}&output=embed`
+        `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(destinationLocation)}&mode=driving&avoid=tolls`
       );
+      
       const response = await axios.get(
         `${import.meta.env.VITE_SERVER_URL
         }/ride/get-fare?pickup=${pickupLocation}&destination=${destinationLocation}`,
@@ -268,7 +272,7 @@ function UserHomeScreen() {
 
   const handleUseDefaultLocation = useCallback(() => {
     console.log('🔄 Using default location (Colombo, Sri Lanka)');
-    setMapLocation('https://www.google.com/maps?q=6.9271,79.8612&output=embed');
+    setMapLocation(`https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&center=6.9271,79.8612&zoom=13&maptype=roadmap`);
     setShowLocationPermission(false);
   }, []);
 
@@ -345,7 +349,7 @@ function UserHomeScreen() {
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
       setMapLocation(
-        `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
+        `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&origin=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]}&destination=${encodeURIComponent(pickupLocation)}&mode=driving`
       );
       setConfirmedRideData(data);
     });
@@ -353,7 +357,7 @@ function UserHomeScreen() {
     socket.on("ride-started", (data) => {
       Console.log("Ride started");
       setMapLocation(
-        `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
+        `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&origin=${encodeURIComponent(data.pickup)}&destination=${encodeURIComponent(data.destination)}&mode=driving`
       );
     });
 
@@ -450,7 +454,7 @@ function UserHomeScreen() {
         onLogout={handleLogout}
       />
       
-      {/* Full-screen Map */}
+      {/* Full-screen Map with Routing */}
       <div className="absolute inset-0 z-0">
         <iframe
           src={mapLocation}

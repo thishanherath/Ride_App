@@ -48,10 +48,10 @@ function Signup() {
       setResponseError("");
       
       // Check if VITE_SERVER_URL is configured
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
       
       if (!import.meta.env.VITE_SERVER_URL) {
-        console.warn('VITE_SERVER_URL is not set. Using default: http://localhost:5000');
+        console.warn('VITE_SERVER_URL is not set. Using default: http://localhost:4000');
       }
       
       // Debug: Log form data

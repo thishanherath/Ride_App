@@ -5,24 +5,26 @@ require("dotenv").config();
 async function createAdmin() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_DEV_URL || process.env.MONGODB_PROD_URL);
+    await mongoose.connect(process.env.DB_CONNECT);
     console.log("Connected to MongoDB");
 
     // Check if admin already exists
-    const existingAdmin = await adminModel.findOne({ email: "admin@quickride.com" });
+    const existingAdmin = await adminModel.findOne({ email: "admin@rideapp.com" });
     if (existingAdmin) {
-      console.log("Admin user already exists");
+      console.log("Admin already exists with email: admin@rideapp.com");
       process.exit(0);
     }
 
     // Create admin user
-    const admin = await adminModel.create({
+    const hashedPassword = await adminModel.hashPassword("admin123456");
+    
+    const admin = new adminModel({
       fullname: {
         firstname: "Super",
         lastname: "Admin"
       },
-      email: "admin@quickride.com",
-      password: await adminModel.hashPassword("admin123"),
+      email: "admin@rideapp.com",
+      password: hashedPassword,
       phone: "1234567890",
       role: "super_admin",
       permissions: {
@@ -31,18 +33,20 @@ async function createAdmin() {
         rideManagement: true,
         paymentManagement: true,
         analytics: true,
-        support: true
+        support: true,
       },
       isActive: true
     });
 
-    console.log("Admin user created successfully:");
-    console.log("Email: admin@quickride.com");
-    console.log("Password: admin123");
+    await admin.save();
+    
+    console.log("Admin created successfully!");
+    console.log("Email: admin@rideapp.com");
+    console.log("Password: admin123456");
     console.log("Role: super_admin");
-
+    
   } catch (error) {
-    console.error("Error creating admin user:", error);
+    console.error("Error creating admin:", error);
   } finally {
     await mongoose.disconnect();
     process.exit(0);

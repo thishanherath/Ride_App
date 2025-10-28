@@ -4,6 +4,7 @@ import Heading from "./Heading";
 import Input from "./Input";
 import LocationSuggestions from "./LocationSuggestions";
 import LocationPermission from "./LocationPermission";
+import MapWithDirections from "./MapWithDirections";
 import NewRide from "./NewRide";
 import RideDetails from "./RideDetails";
 import RideTracker from "./RideTracker";
@@ -34,6 +35,7 @@ export {
   Input,
   LocationSuggestions,
   LocationPermission,
+  MapWithDirections,
   NewRide,
   RideDetails,
   RideTracker,

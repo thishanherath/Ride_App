@@ -126,7 +126,7 @@ function CaptainHomeScreen() {
         setLoading(false);
         setShowBtn("otp");
         setMapLocation(
-          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${rideToAccept.pickup}&output=embed`
+          `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&origin=${riderLocation.ltd},${riderLocation.lng}&destination=${encodeURIComponent(rideToAccept.pickup)}&mode=driving`
         );
         Console.log(response);
         showAlert('Ride Accepted!', 'You have successfully accepted the ride. Please proceed to pickup location.', 'success');
@@ -154,7 +154,7 @@ function CaptainHomeScreen() {
           }
         );
         setMapLocation(
-          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${newRide.destination}&output=embed`
+          `https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&origin=${riderLocation.ltd},${riderLocation.lng}&destination=${encodeURIComponent(newRide.destination)}&mode=driving`
         );
         setShowBtn("end-ride");
         setLoading(false);
@@ -183,7 +183,7 @@ function CaptainHomeScreen() {
           }
         );
         setMapLocation(
-          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng}&output=embed`
+          `https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&center=${riderLocation.ltd},${riderLocation.lng}&zoom=15&maptype=roadmap`
         );
         setShowBtn("accept");
         setLoading(false);
@@ -216,7 +216,7 @@ function CaptainHomeScreen() {
           });
 
           setMapLocation(
-            `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}&output=embed`
+            `https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&center=${position.coords.latitude},${position.coords.longitude}&zoom=15&maptype=roadmap`
           );
           
           // Update captain location on server
@@ -257,7 +257,7 @@ function CaptainHomeScreen() {
             lng: 79.8612,
           });
           setMapLocation(
-            `https://www.google.com/maps?q=6.9271,79.8612&output=embed`
+            `https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&center=6.9271,79.8612&zoom=13&maptype=roadmap`
           );
         },
         {
@@ -276,7 +276,7 @@ function CaptainHomeScreen() {
         lng: 79.8612,
       });
       setMapLocation(
-        `https://www.google.com/maps?q=6.9271,79.8612&output=embed`
+        `https://www.google.com/maps/embed/v1/view?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'demo'}&center=6.9271,79.8612&zoom=13&maptype=roadmap`
       );
     }
   };
