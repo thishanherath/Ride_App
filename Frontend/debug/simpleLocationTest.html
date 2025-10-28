@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Location Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        #map { width: 100%; height: 400px; border: 1px solid #ccc; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Simple Location Test</h1>
+    
+    <div id="status" class="status info">Testing location...</div>
+    
+    <button onclick="testLocation()">Test Location</button>
+    <button onclick="startWatching()">Start Watching</button>
+    <button onclick="stopWatching()">Stop Watching</button>
+    
+    <div id="details"></div>
+    
+    <iframe id="map" src="https://www.google.com/maps?q=6.9271,79.8612&output=embed"></iframe>
+    
+    <script>
+        let watchId = null;
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function updateDetails(location) {
+            const details = document.getElementById('details');
+            details.innerHTML = `
+                <h3>📍 Location Details:</h3>
+                <p><strong>Latitude:</strong> ${location.latitude}</p>
+                <p><strong>Longitude:</strong> ${location.longitude}</p>
+                <p><strong>Accuracy:</strong> ${location.accuracy} meters</p>
+                <p><strong>Timestamp:</strong> ${new Date(location.timestamp).toLocaleString()}</p>
+                <p><strong>Speed:</strong> ${location.speed || 'N/A'} m/s</p>
+            `;
+            
+            // Update map
+            const map = document.getElementById('map');
+            map.src = `https://www.google.com/maps?q=${location.latitude},${location.longitude}&output=embed`;
+        }
+        
+        function testLocation() {
+            if (!navigator.geolocation) {
+                updateStatus('❌ Geolocation not supported', 'error');
+                return;
+            }
+            
+            updateStatus('🔄 Getting location...', 'info');
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    updateStatus('✅ Location obtained successfully!', 'success');
+                    updateDetails({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: position.timestamp,
+                        speed: position.coords.speed
+                    });
+                },
+                (error) => {
+                    updateStatus(`❌ Location error: ${error.message}`, 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 60000
+                }
+            );
+        }
+        
+        function startWatching() {
+            if (!navigator.geolocation) {
+                updateStatus('❌ Geolocation not supported', 'error');
+                return;
+            }
+            
+            if (watchId) {
+                updateStatus('⚠️ Already watching location', 'info');
+                return;
+            }
+            
+            updateStatus('🎯 Starting location watching...', 'info');
+            
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    updateStatus('📍 Location updated (watching)', 'success');
+                    updateDetails({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: position.timestamp,
+                        speed: position.coords.speed
+                    });
+                },
+                (error) => {
+                    updateStatus(`❌ Watch error: ${error.message}`, 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 5000
+                }
+            );
+        }
+        
+        function stopWatching() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                updateStatus('🛑 Stopped watching location', 'info');
+            } else {
+                updateStatus('⚠️ Not currently watching', 'info');
+            }
+        }
+        
+        // Auto-test on load
+        window.onload = function() {
+            testLocation();
+        };
+    </script>
+</body>
+</html>

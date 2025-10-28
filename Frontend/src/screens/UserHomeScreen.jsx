@@ -7,6 +7,8 @@ import {
   RideDetails,
   LocationPermission,
 } from "../components";
+import SimpleMap from "../components/SimpleMap";
+import LocationDisplay from "../components/LocationDisplay";
 
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { Card, Input, Button } from "../components/ui";
@@ -50,7 +52,8 @@ function UserHomeScreen() {
     clearWatch,
     getMapUrl,
     hasLocation,
-    isLocationStale
+    isLocationStale,
+    isWatching
   } = useGeolocation({
     enableHighAccuracy: true,
     timeout: 15000, // 15 seconds
@@ -72,6 +75,80 @@ function UserHomeScreen() {
   });
   const [confirmedRideData, setConfirmedRideData] = useState(null);
   const rideTimeout = useRef(null);
+  
+  // Auto-fill pickup location when user location is available
+  useEffect(() => {
+    const fillPickupLocation = async () => {
+      if (location && location.latitude && location.longitude && !pickupLocation) {
+        try {
+          // Try to get readable address first
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&addressdetails=1`,
+            {
+              headers: {
+                'User-Agent': 'RideApp/1.0'
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            let address = '';
+            
+            if (data && data.address) {
+              // Build a readable address
+              const components = [];
+              
+              if (data.address.house_number && data.address.road) {
+                components.push(`${data.address.house_number} ${data.address.road}`);
+              } else if (data.address.road) {
+                components.push(data.address.road);
+              }
+              
+              if (data.address.neighbourhood) {
+                components.push(data.address.neighbourhood);
+              } else if (data.address.suburb) {
+                components.push(data.address.suburb);
+              }
+              
+              if (data.address.city) {
+                components.push(data.address.city);
+              } else if (data.address.town) {
+                components.push(data.address.town);
+              }
+              
+              address = components.length > 0 ? components.join(', ') : data.display_name?.split(',').slice(0, 3).join(', ');
+            }
+            
+            if (address) {
+              setPickupLocation(address);
+              console.log('📍 Auto-filled pickup location:', address);
+            } else {
+              // Fallback to coordinates
+              const locationString = `${location.latitude}, ${location.longitude}`;
+              setPickupLocation(locationString);
+              console.log('📍 Auto-filled pickup location (coordinates):', locationString);
+            }
+          } else {
+            // Fallback to coordinates if geocoding fails
+            const locationString = `${location.latitude}, ${location.longitude}`;
+            setPickupLocation(locationString);
+            console.log('📍 Auto-filled pickup location (fallback):', locationString);
+          }
+        } catch (error) {
+          console.warn('Failed to get address, using coordinates:', error);
+          const locationString = `${location.latitude}, ${location.longitude}`;
+          setPickupLocation(locationString);
+          console.log('📍 Auto-filled pickup location (error fallback):', locationString);
+        }
+      }
+    };
+    
+    fillPickupLocation();
+  }, [location, pickupLocation]);
+  
+  // Captain location for tracking
+  const [captainLocation, setCaptainLocation] = useState(null);
 
   // Panels
   const [showFindTripPanel, setShowFindTripPanel] = useState(true);
@@ -344,10 +421,55 @@ function UserHomeScreen() {
       Console.log("Cleared Timeout");
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
+      
+      // Update captain location for real-time tracking
+      if (data.captain.location && data.captain.location.coordinates) {
+        setCaptainLocation({
+          latitude: data.captain.location.coordinates[1],
+          longitude: data.captain.location.coordinates[0]
+        });
+      }
+      
       setMapLocation(
         `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
       );
       setConfirmedRideData(data);
+      
+      // Show success notification
+      console.log("🎉 Ride confirmed! Captain is on the way.");
+    });
+
+    socket.on("ride-cancelled-by-captain", (data) => {
+      Console.log("Ride cancelled by captain", data);
+      
+      // Reset to find trip state
+      setShowRideDetailsPanel(false);
+      setShowSelectVehiclePanel(false);
+      setShowFindTripPanel(true);
+      setDefaults();
+      
+      // Clear stored data
+      localStorage.removeItem("rideDetails");
+      localStorage.removeItem("panelDetails");
+      
+      // Show notification
+      console.log("❌ Ride cancelled by captain:", data.reason);
+      alert(`Ride cancelled by captain: ${data.reason || 'No reason provided'}`);
+      
+      // Refresh location
+      updateLocation();
+    });
+
+    socket.on("captain-location-update", (data) => {
+      Console.log("Captain location update", data);
+      
+      // Update captain location for real-time tracking
+      if (data.captainLocation) {
+        setCaptainLocation({
+          latitude: data.captainLocation.latitude,
+          longitude: data.captainLocation.longitude
+        });
+      }
     });
 
     socket.on("ride-started", (data) => {
@@ -355,6 +477,9 @@ function UserHomeScreen() {
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
+      
+      // Show notification
+      console.log("🚀 Ride started! You're on your way.");
     });
 
     socket.on("ride-ended", (data) => {
@@ -366,6 +491,9 @@ function UserHomeScreen() {
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
 
+      // Show completion notification
+      console.log("✅ Ride completed! Thank you for using our service.");
+      
       // Refresh location after ride ends
       updateLocation();
     });
@@ -450,14 +578,19 @@ function UserHomeScreen() {
         onLogout={handleLogout}
       />
       
-      {/* Full-screen Map */}
+      {/* Free OpenStreetMap with Route Visualization */}
       <div className="absolute inset-0 z-0">
-        <iframe
-          src={mapLocation}
-          className="w-full h-full border-0"
-          allowFullScreen={true}
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
+        <SimpleMap
+          pickup={pickupLocation}
+          destination={destinationLocation}
+          userLocation={location}
+          captainLocation={captainLocation}
+          showRoute={pickupLocation && destinationLocation && (showSelectVehiclePanel || showRideDetailsPanel)}
+          trackingMode={confirmedRideData ? 'captain' : 'user'}
+          onLocationUpdate={(newLocation) => {
+            console.log('📍 Real-time location update:', newLocation);
+          }}
+          className="w-full h-full"
         />
       </div>
       
@@ -470,6 +603,30 @@ function UserHomeScreen() {
           showNotifications={true}
         />
       </div>
+
+      {/* Real-Time Location Status - Show when location is available */}
+      {location && location.latitude && (
+        <div className="absolute top-20 left-4 right-4 z-30">
+          <LocationDisplay 
+            location={location}
+            showCoordinates={false}
+            showAccuracy={true}
+            className="shadow-lg"
+          />
+          
+          {/* Live Status Indicator */}
+          <div className="mt-2 flex justify-center">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200">
+              <div className="flex items-center gap-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-gray-600 font-medium">
+                  {isWatching ? 'Live Tracking' : 'Location Offline'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modern Ride Booking Panel with Enhanced Animations */}
       <div className={`absolute bottom-0 left-0 right-0 z-20 transform transition-all duration-700 ease-out ${
