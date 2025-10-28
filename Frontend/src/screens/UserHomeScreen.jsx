@@ -7,6 +7,7 @@ import {
   RideDetails,
   LocationPermission,
 } from "../components";
+// Removed unused imports - using simple iframe map for now
 
 import { Header, Avatar, Sidebar } from "../components/layout";
 import { Card, Input, Button } from "../components/ui";
@@ -50,7 +51,8 @@ function UserHomeScreen() {
     clearWatch,
     getMapUrl,
     hasLocation,
-    isLocationStale
+    isLocationStale,
+    isWatching
   } = useGeolocation({
     enableHighAccuracy: true,
     timeout: 15000, // 15 seconds
@@ -72,6 +74,19 @@ function UserHomeScreen() {
   });
   const [confirmedRideData, setConfirmedRideData] = useState(null);
   const rideTimeout = useRef(null);
+  
+  // Auto-fill pickup location when user location is available
+  useEffect(() => {
+    if (location && location.latitude && location.longitude && !pickupLocation) {
+      // Use coordinates as pickup location
+      const locationString = `${location.latitude}, ${location.longitude}`;
+      setPickupLocation(locationString);
+      console.log('📍 Auto-filled pickup location:', locationString);
+    }
+  }, [location, pickupLocation]);
+  
+  // Captain location for tracking
+  const [captainLocation, setCaptainLocation] = useState(null);
 
   // Panels
   const [showFindTripPanel, setShowFindTripPanel] = useState(true);
@@ -344,6 +359,15 @@ function UserHomeScreen() {
       Console.log("Cleared Timeout");
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
+      
+      // Update captain location for real-time tracking
+      if (data.captain.location && data.captain.location.coordinates) {
+        setCaptainLocation({
+          latitude: data.captain.location.coordinates[1],
+          longitude: data.captain.location.coordinates[0]
+        });
+      }
+      
       setMapLocation(
         `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
       );
@@ -450,10 +474,12 @@ function UserHomeScreen() {
         onLogout={handleLogout}
       />
       
-      {/* Full-screen Map */}
+      {/* Map Display - Restored Original Working Version */}
       <div className="absolute inset-0 z-0">
         <iframe
-          src={mapLocation}
+          src={mapLocation || (location && location.latitude ? 
+            `https://www.google.com/maps?q=${location.latitude},${location.longitude}&output=embed` : 
+            'https://www.google.com/maps?q=6.9271,79.8612&output=embed')}
           className="w-full h-full border-0"
           allowFullScreen={true}
           loading="lazy"
@@ -470,6 +496,28 @@ function UserHomeScreen() {
           showNotifications={true}
         />
       </div>
+
+      {/* Real-Time Location Status - Show when location is available */}
+      {location && location.latitude && (
+        <div className="absolute top-20 left-4 right-4 z-30">
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-gray-200">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-gray-600">{isWatching ? 'Live' : 'Offline'}</span>
+              </div>
+              {location.accuracy && (
+                <span className="text-gray-500">
+                  ±{Math.round(location.accuracy)}m
+                </span>
+              )}
+              <span className="text-gray-400 font-mono text-xs">
+                {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modern Ride Booking Panel with Enhanced Animations */}
       <div className={`absolute bottom-0 left-0 right-0 z-20 transform transition-all duration-700 ease-out ${
