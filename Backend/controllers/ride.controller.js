@@ -439,3 +439,46 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
+
+// Get user's ride history
+module.exports.getUserRideHistory = async (req, res) => {
+  try {
+    const user = req.user;
+    const { page = 1, limit = 20, status } = req.query;
+
+    let query = { user: user._id };
+    if (status) {
+      query.status = status;
+    }
+
+    const rides = await rideModel
+      .find(query)
+      .populate("captain", "fullname phone vehicle")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await rideModel.countDocuments(query);
+
+    console.log(`📊 Found ${rides.length} rides for user ${user.fullname.firstname}`);
+
+    res.status(200).json({
+      success: true,
+      rides,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    });
+
+  } catch (error) {
+    console.error("❌ Error getting user ride history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get ride history",
+      error: error.message,
+      rides: [],
+      total: 0
+    });
+  }
+};

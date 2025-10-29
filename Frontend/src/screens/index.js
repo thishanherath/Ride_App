@@ -14,7 +14,7 @@ import CaptainHomeScreen from "./CaptainHomeScreen";
 import UserProtectedWrapper from "./UserProtectedWrapper";
 import CaptainProtectedWrapper from "./CaptainProtectedWrapper";
 
-import RideHistory from "./RideHistory";
+import LazyRideHistory from "../components/LazyRideHistory";
 
 import UserEditProfile from "./UserEditProfile";
 import CaptainEditProfile from "./CaptainEditProfile";
@@ -43,7 +43,7 @@ export {
   CaptainHomeScreen,
   UserProtectedWrapper,
   CaptainProtectedWrapper,
-  RideHistory,
+  LazyRideHistory,
   UserEditProfile,
   CaptainEditProfile,
   Error,

@@ -494,7 +494,11 @@ function CaptainHomeScreen() {
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={closeSidebar}
-        user={captain}
+        user={{
+          name: captain?.fullname ? `${captain.fullname.firstname} ${captain.fullname.lastname}` : 'Captain',
+          avatar: captain?.avatar,
+          rating: captain?.rating
+        }}
         userType="captain"
         onNavigate={navigateTo}
         currentPath={currentPath}

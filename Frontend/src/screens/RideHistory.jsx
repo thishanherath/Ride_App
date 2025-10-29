@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -7,23 +7,45 @@ import {
   CreditCard,
   MapPin,
   Navigation,
-  Route
+  Route,
+  RefreshCw,
+  Loader
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/ui/Card";
 import { NoRidesEmpty } from "../components/ui/EmptyState";
 import { StatusBadge } from "../components/ui/Badge";
 import { formatCurrency } from "../utils/currency";
+import useRideHistory from "../hooks/useRideHistory";
+import { useUser } from "../contexts/UserContext";
+import { useCaptain } from "../contexts/CaptainContext";
+import RideHistorySkeleton from "../components/ui/RideHistorySkeleton";
 
 function RideHistory() {
   const navigation = useNavigate();
-  const userData = JSON.parse(localStorage.getItem("userData"));
-  const [user, setUser] = useState(userData.data);
+  const { user } = useUser();
+  const { captain } = useCaptain();
+  
+  // Determine user type based on current context
+  const userType = captain ? 'captain' : 'user';
+  const currentUser = captain || user;
+  
   const [expandedSections, setExpandedSections] = useState({
     today: true,
     yesterday: true,
     earlier: true
   });
+
+  const {
+    rides,
+    loading,
+    error,
+    pagination,
+    refresh,
+    classifyRidesByDate,
+    getRideStats,
+    hasRides
+  } = useRideHistory(userType);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -32,81 +54,79 @@ function RideHistory() {
     }));
   };
 
-  function classifyAndSortRides(rides) {
-    if (!rides || rides.length === 0) return { today: [], yesterday: [], earlier: [] };
-    
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+  const classifiedRides = classifyRidesByDate();
+  const rideStats = getRideStats();
 
-    // Helper function to check if a date is today
-    const isToday = (date) =>
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate();
-
-    // Helper function to check if a date is yesterday
-    const isYesterday = (date) =>
-      date.getFullYear() === yesterday.getFullYear() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getDate() === yesterday.getDate();
-
-    // Helper function to sort rides by date (recent to oldest)
-    const sortByDate = (rides) =>
-      rides.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Arrays to hold classified rides
-    const todayRides = [];
-    const yesterdayRides = [];
-    const earlierRides = [];
-
-    // Classify rides
-    rides.forEach((ride) => {
-      const createdDate = new Date(ride.createdAt);
-      if (isToday(createdDate)) {
-        todayRides.push(ride);
-      } else if (isYesterday(createdDate)) {
-        yesterdayRides.push(ride);
-      } else {
-        earlierRides.push(ride);
-      }
-    });
-
-    // Return sorted arrays
-    return {
-      today: sortByDate(todayRides),
-      yesterday: sortByDate(yesterdayRides),
-      earlier: sortByDate(earlierRides),
-    };
-  }
-
-  const classifiedRides = classifyAndSortRides(user.rides);
-  const hasAnyRides = classifiedRides.today.length > 0 || 
-                     classifiedRides.yesterday.length > 0 || 
-                     classifiedRides.earlier.length > 0;
+  // Handle refresh
+  const handleRefresh = () => {
+    refresh();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Modern Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center gap-4 px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigation(-1)}
+              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+            </button>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Ride History</h1>
+              {hasRides && (
+                <p className="text-sm text-gray-500">
+                  {rideStats.total} rides • {rideStats.completed} completed
+                </p>
+              )}
+            </div>
+          </div>
+          
           <button
-            onClick={() => navigation(-1)}
-            className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+            <RefreshCw className={`w-5 h-5 text-gray-700 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <h1 className="text-xl font-semibold text-gray-900">Ride History</h1>
         </div>
       </div>
 
       <div className="px-6 py-6">
-        {!hasAnyRides ? (
+        {/* Loading State with Skeleton */}
+        {loading && rides.length === 0 && (
+          <RideHistorySkeleton />
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center py-20">
+            <div className="text-red-500 mb-4">
+              <Calendar className="w-12 h-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Rides</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && !hasRides && (
           <NoRidesEmpty 
-            onBookRide={() => navigation('/user-home')}
+            onBookRide={() => navigation(userType === 'captain' ? '/captain-home' : '/user-home')}
             className="mt-20"
           />
-        ) : (
+        )}
+
+        {/* Rides Content */}
+        {!loading && !error && hasRides && (
           <div className="space-y-6">
             {/* Today Section */}
             <RideSection
@@ -226,6 +246,16 @@ export const ModernRideCard = ({ ride }) => {
     return 'completed'; // Default for historical rides
   };
 
+  const getRideFare = (ride) => {
+    // Handle different fare structures
+    if (typeof ride.fare === 'number') return ride.fare;
+    if (ride.fare && typeof ride.fare === 'object') {
+      // If fare is an object with vehicle types
+      return ride.fare[ride.vehicle] || ride.fare.car || ride.fare.auto || ride.fare.bike || 0;
+    }
+    return 0;
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'success';
@@ -248,7 +278,7 @@ export const ModernRideCard = ({ ride }) => {
             <StatusBadge status={getRideStatus(ride)} />
             <div className="flex items-center gap-1 text-lg font-semibold text-gray-900">
               <CreditCard className="w-4 h-4 text-gray-500" />
-              {formatCurrency(ride.fare)}
+              {formatCurrency(getRideFare(ride))}
             </div>
           </div>
         </div>
@@ -302,9 +332,14 @@ export const ModernRideCard = ({ ride }) => {
                   <span>{Math.round(ride.duration / 60)} min</span>
                 </div>
               )}
-              {ride.vehicleType && (
+              {(ride.vehicleType || ride.vehicle) && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <span className="font-medium capitalize">{ride.vehicleType}</span>
+                  <span className="font-medium capitalize">{ride.vehicleType || ride.vehicle}</span>
+                </div>
+              )}
+              {ride.captain && (
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <span>Captain: {ride.captain.fullname?.firstname} {ride.captain.fullname?.lastname}</span>
                 </div>
               )}
             </div>

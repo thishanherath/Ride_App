@@ -7,6 +7,7 @@ import {
   CarIcon,
   MapPinIcon
 } from 'lucide-react';
+import { debouncedPreload } from '../../utils/navigationOptimizer';
 
 const BottomNav = ({ 
   userType = 'user', // 'user' or 'captain'
@@ -54,6 +55,14 @@ const BottomNav = ({
             <button
               key={item.path}
               onClick={() => handleItemClick(item.path)}
+              onMouseEnter={() => {
+                // Preload components on hover for better performance
+                if (item.label === 'History') {
+                  debouncedPreload('RideHistory');
+                } else if (item.label === 'Profile') {
+                  debouncedPreload('Profile');
+                }
+              }}
               className={`
                 flex flex-col items-center justify-center px-3 py-2 rounded-xl
                 min-w-0 flex-1 transition-all duration-200
