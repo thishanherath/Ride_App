@@ -11,7 +11,7 @@ import {
   CaptainSignup,
   Login,
   Signup,
-  RideHistory,
+  LazyRideHistory,
   UserEditProfile,
   CaptainEditProfile,
   Error,
@@ -68,7 +68,7 @@ function App() {
                 path="/user/rides"
                 element={
                   <UserProtectedWrapper>
-                    <RideHistory />
+                    <LazyRideHistory />
                   </UserProtectedWrapper>
                 }
               />
@@ -95,7 +95,7 @@ function App() {
                 path="/captain/rides"
                 element={
                   <CaptainProtectedWrapper>
-                    <RideHistory />
+                    <LazyRideHistory />
                   </CaptainProtectedWrapper>
                 }
               />
