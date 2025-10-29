@@ -40,7 +40,8 @@ function App() {
 
         <BrowserRouter>
           <LoggingWrapper />
-          <PageTransition className="w-full h-full">
+          {/* Temporarily disabled PageTransition to fix navigation issue */}
+          <div className="w-full h-full">
             <Routes>
               <Route path="/" element={<GetStarted />} />
               <Route
@@ -114,7 +115,7 @@ function App() {
 
               <Route path="*" element={<Error />} />
             </Routes>
-          </PageTransition>
+          </div>
         </BrowserRouter>
         </div>
       </div>

@@ -20,9 +20,14 @@ export const useNavigation = () => {
   }, []);
 
   const navigateTo = useCallback((path) => {
-    navigate(path);
-    setSidebarOpen(false);
-  }, [navigate]);
+    console.log(`🔄 Navigating to: ${path}`);
+    
+    // Use window.location.href for reliable navigation
+    // This bypasses React Router issues and ensures page updates
+    window.location.href = path;
+    
+    // Note: setSidebarOpen(false) not needed since page will reload
+  }, []);
 
   const handleLogout = useCallback(async () => {
     console.log('🚪 Logging out user...');
