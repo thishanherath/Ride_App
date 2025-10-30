@@ -129,15 +129,30 @@ module.exports.confirmRide = async (req, res) => {
 
   const { rideId } = req.body;
 
+  console.log('🎯 Ride acceptance request:', {
+    rideId,
+    captainId: req.captain._id,
+    captainName: `${req.captain.fullname.firstname} ${req.captain.fullname.lastname}`
+  });
+
   try {
     const rideDetails = await rideModel.findOne({ _id: rideId });
 
     if (!rideDetails) {
+      console.log('❌ Ride not found:', rideId);
       return res.status(404).json({ message: "Ride not found." });
     }
 
+    console.log('📋 Ride details:', {
+      id: rideDetails._id,
+      status: rideDetails.status,
+      vehicle: rideDetails.vehicle,
+      pickup: rideDetails.pickup.substring(0, 50) + '...'
+    });
+
     switch (rideDetails.status) {
       case "accepted":
+        console.log('⚠️ Ride already accepted by another captain');
         return res
           .status(400)
           .json({
@@ -146,6 +161,7 @@ module.exports.confirmRide = async (req, res) => {
           });
 
       case "ongoing":
+        console.log('⚠️ Ride is currently ongoing');
         return res
           .status(400)
           .json({
@@ -153,11 +169,13 @@ module.exports.confirmRide = async (req, res) => {
           });
 
       case "completed":
+        console.log('⚠️ Ride already completed');
         return res
           .status(400)
           .json({ message: "The ride has already been completed." });
 
       case "cancelled":
+        console.log('⚠️ Ride was cancelled');
         return res
           .status(400)
           .json({ message: "The ride has been cancelled." });
@@ -166,21 +184,33 @@ module.exports.confirmRide = async (req, res) => {
         break;
     }
 
+    console.log('✅ Proceeding with ride acceptance...');
     const ride = await rideService.confirmRide({
       rideId,
       captain: req.captain,
     });
 
-    sendMessageToSocketId(ride.user.socketId, {
-      event: "ride-confirmed",
-      data: ride,
+    console.log('🎉 Ride accepted successfully:', {
+      rideId: ride._id,
+      status: ride.status,
+      otp: ride.otp
     });
+
+    // Notify user via socket
+    if (ride.user.socketId) {
+      sendMessageToSocketId(ride.user.socketId, {
+        event: "ride-confirmed",
+        data: ride,
+      });
+      console.log('📡 User notified via socket:', ride.user.socketId);
+    }
 
     // TODO: Remove ride from other captains
     // Implement logic here, maybe emit an event or update captain listings
 
     return res.status(200).json(ride);
   } catch (err) {
+    console.error('❌ Error confirming ride:', err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -207,6 +237,47 @@ module.exports.startRide = async (req, res) => {
 
     return res.status(200).json(ride);
   } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports.startRideDirect = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { rideId } = req.body;
+
+  console.log('🚀 Starting ride directly without OTP:', {
+    rideId,
+    captainId: req.captain._id,
+    captainName: `${req.captain.fullname.firstname} ${req.captain.fullname.lastname}`
+  });
+
+  try {
+    const ride = await rideService.startRideWithoutOTP({
+      rideId,
+      captain: req.captain,
+    });
+
+    console.log('✅ Ride started directly:', {
+      rideId: ride._id,
+      status: ride.status
+    });
+
+    // Notify user via socket
+    if (ride.user.socketId) {
+      sendMessageToSocketId(ride.user.socketId, {
+        event: "ride-started",
+        data: ride,
+      });
+      console.log('📡 User notified via socket:', ride.user.socketId);
+    }
+
+    return res.status(200).json(ride);
+  } catch (err) {
+    console.error('❌ Error starting ride directly:', err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -473,6 +544,48 @@ module.exports.getUserRideHistory = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error getting user ride history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get ride history",
+      error: error.message,
+      rides: [],
+      total: 0
+    });
+  }
+};
+// Get captain's ride history
+module.exports.getCaptainRideHistory = async (req, res) => {
+  try {
+    const captain = req.captain;
+    const { page = 1, limit = 20, status } = req.query;
+
+    let query = { captain: captain._id };
+    if (status) {
+      query.status = status;
+    }
+
+    const rides = await rideModel
+      .find(query)
+      .populate("user", "fullname phone email")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await rideModel.countDocuments(query);
+
+    console.log(`📊 Found ${rides.length} rides for captain ${captain.fullname.firstname}`);
+
+    res.status(200).json({
+      success: true,
+      rides,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    });
+
+  } catch (error) {
+    console.error("❌ Error getting captain ride history:", error);
     res.status(500).json({
       success: false,
       message: "Failed to get ride history",

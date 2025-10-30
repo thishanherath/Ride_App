@@ -112,12 +112,12 @@ const SimpleMap = ({
         </div>
       )}
       
-      {/* Captain indicator */}
+      {/* Driver indicator */}
       {captainLocation && captainLocation.latitude && (
         <div className="absolute bottom-4 left-4 bg-yellow-500/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm text-white">
           <div className="flex items-center gap-2 text-sm">
             <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-            <span>🚗 Captain Nearby</span>
+            <span>🚗 Driver Nearby</span>
           </div>
         </div>
       )}

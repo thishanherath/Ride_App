@@ -528,3 +528,221 @@ module.exports.getAnalytics = asyncHandler(async (req, res) => {
     captainStats
   });
 });
+// Admin Management (Super Admin only)
+module.exports.getAllAdmins = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, search = "", role = "" } = req.query;
+  const skip = (page - 1) * limit;
+
+  let query = {};
+  
+  if (search) {
+    query.$or = [
+      { "fullname.firstname": { $regex: search, $options: "i" } },
+      { "fullname.lastname": { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+      { phone: { $regex: search, $options: "i" } }
+    ];
+  }
+
+  if (role) {
+    query.role = role;
+  }
+
+  const admins = await adminModel
+    .find(query)
+    .select("-password")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  const total = await adminModel.countDocuments(query);
+
+  res.status(200).json({
+    admins,
+    pagination: {
+      current: parseInt(page),
+      pages: Math.ceil(total / limit),
+      total
+    }
+  });
+});
+
+module.exports.createAdmin = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json(errors.array());
+  }
+
+  const { fullname, email, password, phone, role, permissions } = req.body;
+
+  // Check if admin already exists
+  const existingAdmin = await adminModel.findOne({ email });
+  if (existingAdmin) {
+    return res.status(400).json({ message: "Admin with this email already exists" });
+  }
+
+  const newAdmin = await adminModel.create({
+    fullname,
+    email,
+    password: await adminModel.hashPassword(password),
+    phone,
+    role: role || "admin",
+    permissions: permissions || {
+      userManagement: true,
+      driverManagement: true,
+      rideManagement: true,
+      paymentManagement: false,
+      analytics: true,
+      support: true
+    },
+    isActive: true
+  });
+
+  res.status(201).json({
+    message: "Admin created successfully",
+    admin: {
+      _id: newAdmin._id,
+      fullname: newAdmin.fullname,
+      email: newAdmin.email,
+      phone: newAdmin.phone,
+      role: newAdmin.role,
+      permissions: newAdmin.permissions,
+      isActive: newAdmin.isActive
+    }
+  });
+});
+
+module.exports.updateAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { fullname, phone, role, permissions, isActive } = req.body;
+
+  // Prevent self-deactivation
+  if (req.admin._id.toString() === id && isActive === false) {
+    return res.status(400).json({ message: "Cannot deactivate your own account" });
+  }
+
+  const admin = await adminModel.findByIdAndUpdate(
+    id,
+    {
+      ...(fullname && { fullname }),
+      ...(phone && { phone }),
+      ...(role && { role }),
+      ...(permissions && { permissions }),
+      ...(typeof isActive === 'boolean' && { isActive })
+    },
+    { new: true }
+  ).select("-password");
+
+  if (!admin) {
+    return res.status(404).json({ message: "Admin not found" });
+  }
+
+  res.status(200).json({
+    message: "Admin updated successfully",
+    admin
+  });
+});
+
+module.exports.deleteAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Prevent self-deletion
+  if (req.admin._id.toString() === id) {
+    return res.status(400).json({ message: "Cannot delete your own account" });
+  }
+
+  const admin = await adminModel.findByIdAndDelete(id);
+
+  if (!admin) {
+    return res.status(404).json({ message: "Admin not found" });
+  }
+
+  res.status(200).json({
+    message: "Admin deleted successfully"
+  });
+});
+
+module.exports.changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: "Current password and new password are required" });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: "New password must be at least 8 characters long" });
+  }
+
+  // Get admin with password
+  const admin = await adminModel.findById(req.admin._id).select("+password");
+  if (!admin) {
+    return res.status(404).json({ message: "Admin not found" });
+  }
+
+  // Verify current password
+  const isCurrentPasswordValid = await admin.comparePassword(currentPassword);
+  if (!isCurrentPasswordValid) {
+    return res.status(400).json({ message: "Current password is incorrect" });
+  }
+
+  // Update password
+  admin.password = await adminModel.hashPassword(newPassword);
+  admin.loginAttempts = 0;
+  admin.lockUntil = undefined;
+  await admin.save();
+
+  res.status(200).json({
+    message: "Password changed successfully"
+  });
+});
+
+// System Health Check
+module.exports.getSystemHealth = asyncHandler(async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalCaptains,
+      totalAdmins,
+      activeRides,
+      systemUptime
+    ] = await Promise.all([
+      userModel.countDocuments(),
+      captainModel.countDocuments(),
+      adminModel.countDocuments({ isActive: true }),
+      rideModel.countDocuments({ status: { $in: ["pending", "accepted", "ongoing"] } }),
+      Promise.resolve(process.uptime())
+    ]);
+
+    const memoryUsage = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
+
+    res.status(200).json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(systemUptime),
+      database: {
+        users: totalUsers,
+        captains: totalCaptains,
+        admins: totalAdmins,
+        activeRides
+      },
+      system: {
+        memory: {
+          used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+          total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+          external: Math.round(memoryUsage.external / 1024 / 1024)
+        },
+        cpu: {
+          user: cpuUsage.user,
+          system: cpuUsage.system
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "unhealthy",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});

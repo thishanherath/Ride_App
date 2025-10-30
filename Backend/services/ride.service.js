@@ -90,7 +90,6 @@ module.exports.createRide = async ({
       user,
       pickup,
       destination,
-      otp: getOtp(6),
       fare: fare[vehicleType],
       vehicle: vehicleType,
       distance: distanceTime.distance.value,
@@ -180,6 +179,51 @@ module.exports.startRide = async ({ rideId, otp, captain }) => {
   );
 
   return ride;
+};
+
+module.exports.startRideWithoutOTP = async ({ rideId, captain }) => {
+  if (!rideId) {
+    throw new Error("Ride id is required");
+  }
+
+  const ride = await rideModel
+    .findOne({
+      _id: rideId,
+    })
+    .populate("user")
+    .populate("captain");
+
+  if (!ride) {
+    throw new Error("Ride not found");
+  }
+
+  if (ride.status !== "accepted") {
+    throw new Error("Ride not accepted");
+  }
+
+  // Verify the captain is the one assigned to this ride
+  if (ride.captain._id.toString() !== captain._id.toString()) {
+    throw new Error("Unauthorized: You are not assigned to this ride");
+  }
+
+  await rideModel.findOneAndUpdate(
+    {
+      _id: rideId,
+    },
+    {
+      status: "ongoing",
+    }
+  );
+
+  // Return updated ride
+  const updatedRide = await rideModel
+    .findOne({
+      _id: rideId,
+    })
+    .populate("user")
+    .populate("captain");
+
+  return updatedRide;
 };
 
 module.exports.endRide = async ({ rideId, captain }) => {

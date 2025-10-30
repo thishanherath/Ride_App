@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>End Ride Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .status { font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🏁 End Ride Debug Tool</h1>
+    
+    <div class="section info">
+        <h3>📋 Current State</h3>
+        <div id="currentState">Loading...</div>
+        <button onclick="checkCurrentState()">Refresh State</button>
+    </div>
+    
+    <div class="section">
+        <h3>🧪 Test Actions</h3>
+        <button onclick="testEndRideAPI()">Test End Ride API</button>
+        <button onclick="simulateEndRide()">Simulate End Ride Flow</button>
+        <button onclick="clearAllData()">Clear All Ride Data</button>
+        <button onclick="forceRefresh()">Force Page Refresh</button>
+    </div>
+    
+    <div class="section">
+        <h3>📊 Results</h3>
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        const SERVER_URL = 'http://localhost:4000';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+            console.log(message);
+        }
+        
+        function checkCurrentState() {
+            const token = localStorage.getItem('token');
+            const rideDetails = localStorage.getItem('rideDetails');
+            const showPanel = localStorage.getItem('showPanel');
+            const showBtn = localStorage.getItem('showBtn');
+            const userData = localStorage.getItem('userData');
+            
+            const state = {
+                hasToken: !!token,
+                hasRideDetails: !!rideDetails,
+                showPanel: showPanel,
+                showBtn: showBtn,
+                hasUserData: !!userData,
+                currentUrl: window.location.href
+            };
+            
+            if (rideDetails) {
+                try {
+                    state.rideData = JSON.parse(rideDetails);
+                } catch (e) {
+                    state.rideDataError = e.message;
+                }
+            }
+            
+            if (userData) {
+                try {
+                    state.userData = JSON.parse(userData);
+                } catch (e) {
+                    state.userDataError = e.message;
+                }
+            }
+            
+            document.getElementById('currentState').innerHTML = `<pre>${JSON.stringify(state, null, 2)}</pre>`;
+            
+            // Determine expected state
+            if (!token) {
+                log('❌ No token - should redirect to login', 'error');
+            } else if (!rideDetails) {
+                log('✅ No active ride - should show captain dashboard', 'success');
+            } else {
+                log('⚠️ Active ride found - should show ride panel', 'warning');
+            }
+        }
+        
+        async function testEndRideAPI() {
+            const token = localStorage.getItem('token');
+            const rideDetails = localStorage.getItem('rideDetails');
+            
+            if (!token) {
+                log('❌ No token found', 'error');
+                return;
+            }
+            
+            if (!rideDetails) {
+                log('❌ No ride details found', 'error');
+                return;
+            }
+            
+            let ride;
+            try {
+                ride = JSON.parse(rideDetails);
+            } catch (e) {
+                log('❌ Invalid ride details JSON', 'error');
+                return;
+            }
+            
+            if (!ride._id) {
+                log('❌ No ride ID found', 'error');
+                return;
+            }
+            
+            log('📡 Testing end ride API...', 'info');
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/ride/end-ride`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token': token
+                    },
+                    body: JSON.stringify({
+                        rideId: ride._id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ End ride API successful', 'success');
+                    log(`Response: ${JSON.stringify(data, null, 2)}`, 'info');
+                } else {
+                    log(`❌ End ride API failed: ${response.status}`, 'error');
+                    log(`Error: ${JSON.stringify(data, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateEndRide() {
+            log('🎭 Simulating end ride flow...', 'info');
+            
+            // Clear ride data like the app does
+            localStorage.removeItem("rideDetails");
+            localStorage.removeItem("showPanel");
+            localStorage.removeItem("showBtn");
+            
+            log('🧹 Cleared localStorage', 'success');
+            log('🔄 State should now show captain dashboard', 'info');
+            
+            checkCurrentState();
+        }
+        
+        function clearAllData() {
+            log('🗑️ Clearing all data...', 'warning');
+            
+            localStorage.removeItem("token");
+            localStorage.removeItem("userData");
+            localStorage.removeItem("rideDetails");
+            localStorage.removeItem("showPanel");
+            localStorage.removeItem("showBtn");
+            localStorage.removeItem("messages");
+            
+            log('✅ All data cleared', 'success');
+            checkCurrentState();
+        }
+        
+        function forceRefresh() {
+            log('🔄 Force refreshing page...', 'info');
+            window.location.reload();
+        }
+        
+        // Auto-run on load
+        window.onload = function() {
+            log('🚀 End Ride Debug Tool Loaded', 'info');
+            checkCurrentState();
+        };
+    </script>
+</body>
+</html>

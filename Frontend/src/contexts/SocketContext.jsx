@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 
 export const SocketDataContext = createContext();
 
-const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:5000');
+const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:4000');
 
 import Console from "../utils/console";
 

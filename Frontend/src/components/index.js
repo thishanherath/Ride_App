@@ -5,6 +5,7 @@ import Input from "./Input";
 import LocationSuggestions from "./LocationSuggestions";
 import LocationPermission from "./LocationPermission";
 import NewRide from "./NewRide";
+import PaymentMethodSelector from "./PaymentMethodSelector";
 import RideDetails from "./RideDetails";
 import RideTracker from "./RideTracker";
 import SelectVehicle from "./SelectVehicle";
@@ -35,6 +36,7 @@ export {
   LocationSuggestions,
   LocationPermission,
   NewRide,
+  PaymentMethodSelector,
   RideDetails,
   RideTracker,
   SelectVehicle,

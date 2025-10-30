@@ -2,7 +2,7 @@ import axios from 'axios';
 import googleMapsApiService from './googleMapsApi.js';
 import { getEnvironmentConfig } from '../config/googleMaps.js';
 
-const API_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
 
 /**
  * Service for Google Maps API integration with enhanced Distance Matrix functionality
