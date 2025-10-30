@@ -509,9 +509,14 @@ function CaptainHomeScreen() {
       <div className="absolute top-0 left-0 right-0 z-10">
         <Header 
           title="Captain Dashboard"
-          user={captain}
+          user={{
+            name: captain?.fullname ? `${captain.fullname.firstname} ${captain.fullname.lastname}` : 'Captain',
+            avatar: captain?.avatar
+          }}
           onMenuClick={openSidebar}
           showNotifications={true}
+          onNotificationClick={() => navigateTo('/captain/notifications')}
+          onProfileClick={() => navigateTo('/captain/edit-profile')}
         />
       </div>
       

@@ -16,7 +16,9 @@ import {
 import { Card, Button, Badge, ProgressBar } from "./ui";
 import { formatCurrency } from "../utils/currency";
 import ConfirmRideButton from "./ConfirmRideButton";
+import PaymentMethodSelector from "./PaymentMethodSelector";
 import { useDistance } from "../hooks/useDistanceTime";
+import { useState } from "react";
 
 function RideDetails({
   pickupLocation,
@@ -32,6 +34,14 @@ function RideDetails({
   rideCreated,
   confirmedRideData,
 }) {
+  // Payment method state
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState({
+    id: 'cash',
+    type: 'cash',
+    name: 'Cash Payment',
+    description: 'Pay with cash to driver'
+  });
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
   // Get real distance and time data from Google Maps API
   const {
     distance,
@@ -278,7 +288,15 @@ function RideDetails({
                   </div>
                   <div>
                     <span className="text-blue-700 font-medium">Payment:</span>
-                    <p className="text-blue-900 font-semibold">Cash</p>
+                    <button
+                      onClick={() => {
+                        console.log('Payment button clicked, current state:', showPaymentSelector);
+                        setShowPaymentSelector(!showPaymentSelector);
+                      }}
+                      className="text-blue-900 font-semibold hover:text-blue-700 transition-colors text-left"
+                    >
+                      {selectedPaymentMethod.name} ▼
+                    </button>
                   </div>
                   <div>
                     <span className="text-blue-700 font-medium">Distance:</span>
@@ -428,8 +446,42 @@ function RideDetails({
                   </div>
                 )}
               </div>
+
             </div>
           </div>
+
+          {/* Payment Method Selector - Outside scrollable area */}
+          {showPaymentSelector && !rideCreated && !confirmedRideData && (
+            <div className="px-4 py-4 border-t-2 border-orange-200 bg-orange-50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Select Payment Method</h3>
+                <button
+                  onClick={() => setShowPaymentSelector(false)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="bg-green-100 border border-green-300 p-3 mb-3 text-sm text-green-800 rounded-lg">
+                ✅ Payment Method Selector is now visible! State: {showPaymentSelector ? 'OPEN' : 'CLOSED'}
+              </div>
+              <PaymentMethodSelector
+                selectedMethod={selectedPaymentMethod}
+                onMethodSelect={(method) => {
+                  console.log('Payment method selected:', method);
+                  setSelectedPaymentMethod(method);
+                  setShowPaymentSelector(false); // Close selector after selection
+                }}
+                amount={fare && fare[selectedVehicle] ? fare[selectedVehicle] : 0}
+                showAddMethod={true}
+                onAddMethod={() => {
+                  // Navigate to add payment method
+                  window.location.href = '/user/payment';
+                }}
+                className="bg-white rounded-lg border-2 border-orange-300 p-4 shadow-lg"
+              />
+            </div>
+          )}
 
           {/* Action Button */}
           <div className="bg-white pt-2 sm:pt-3 border-t border-gray-100 flex-shrink-0">
@@ -454,11 +506,12 @@ function RideDetails({
               </div>
             ) : (
               <ConfirmRideButton
-                onConfirm={createRide}
+                onConfirm={() => createRide(selectedPaymentMethod)}
                 loading={loading}
                 disabled={!pickupLocation || !destinationLocation || !fare || !fare[selectedVehicle]}
                 fare={fare && fare[selectedVehicle] ? fare[selectedVehicle] : 0}
                 vehicleType={selectedVehicle}
+                paymentMethod={selectedPaymentMethod}
               />
             )}
           </div>

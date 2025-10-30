@@ -108,6 +108,8 @@ router.post('/captain/location',
     captainRideController.updateLocation
 )
 
+*/
+
 // Get user's ride history
 router.get('/user/history',
     authMiddleware.authUser,
@@ -115,7 +117,7 @@ router.get('/user/history',
     query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Invalid limit'),
     query('status').optional().isIn(['pending', 'accepted', 'ongoing', 'completed', 'cancelled']).withMessage('Invalid status'),
     rideController.getUserRideHistory
-)
+);
 
 // Get captain's ride history
 router.get('/captain/history',
@@ -123,8 +125,7 @@ router.get('/captain/history',
     query('page').optional().isInt({ min: 1 }).withMessage('Invalid page number'),
     query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Invalid limit'),
     query('status').optional().isIn(['pending', 'accepted', 'ongoing', 'completed', 'cancelled']).withMessage('Invalid status'),
-    captainRideController.getRideHistory
-)
-*/
+    rideController.getCaptainRideHistory
+);
 
 module.exports = router;

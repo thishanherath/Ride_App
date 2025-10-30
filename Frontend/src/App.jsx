@@ -22,7 +22,11 @@ import {
   AdminLogin,
   AdminDashboard,
   AdminUsers,
-  MapScreen
+  MapScreen,
+  PaymentMethods,
+  PaymentHistory,
+  Notifications,
+  Messages
 } from "./screens/";
 import { logger } from "./utils/logger";
 import { SocketDataContext } from "./contexts/SocketContext";
@@ -109,6 +113,76 @@ function App() {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
+
+              {/* Payment Routes */}
+              <Route
+                path="/user/payment"
+                element={
+                  <UserProtectedWrapper>
+                    <PaymentMethods />
+                  </UserProtectedWrapper>
+                }
+              />
+              <Route
+                path="/captain/payment"
+                element={
+                  <CaptainProtectedWrapper>
+                    <PaymentMethods />
+                  </CaptainProtectedWrapper>
+                }
+              />
+              <Route
+                path="/user/payment-history"
+                element={
+                  <UserProtectedWrapper>
+                    <PaymentHistory />
+                  </UserProtectedWrapper>
+                }
+              />
+              <Route
+                path="/captain/payment-history"
+                element={
+                  <CaptainProtectedWrapper>
+                    <PaymentHistory />
+                  </CaptainProtectedWrapper>
+                }
+              />
+
+              {/* Notification Routes */}
+              <Route
+                path="/user/notifications"
+                element={
+                  <UserProtectedWrapper>
+                    <Notifications />
+                  </UserProtectedWrapper>
+                }
+              />
+              <Route
+                path="/captain/notifications"
+                element={
+                  <CaptainProtectedWrapper>
+                    <Notifications />
+                  </CaptainProtectedWrapper>
+                }
+              />
+
+              {/* Message Routes */}
+              <Route
+                path="/user/chat"
+                element={
+                  <UserProtectedWrapper>
+                    <Messages />
+                  </UserProtectedWrapper>
+                }
+              />
+              <Route
+                path="/captain/chat"
+                element={
+                  <CaptainProtectedWrapper>
+                    <Messages />
+                  </CaptainProtectedWrapper>
+                }
+              />
 
               {/* Map Routes */}
               <Route path="/map" element={<MapScreen />} />

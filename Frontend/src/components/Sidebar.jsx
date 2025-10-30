@@ -232,8 +232,7 @@ function Sidebar() {
             <div
               onClick={() => {
                 console.log("Payment Methods clicked");
-                // For now, show an alert since payment functionality might not be fully implemented
-                alert("Payment Methods feature coming soon!");
+                window.location.href = '/user/payment';
                 setShowSidebar(false);
               }}
               className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors mb-2"

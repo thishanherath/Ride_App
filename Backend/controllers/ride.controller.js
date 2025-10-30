@@ -482,3 +482,45 @@ module.exports.getUserRideHistory = async (req, res) => {
     });
   }
 };
+// Get captain's ride history
+module.exports.getCaptainRideHistory = async (req, res) => {
+  try {
+    const captain = req.captain;
+    const { page = 1, limit = 20, status } = req.query;
+
+    let query = { captain: captain._id };
+    if (status) {
+      query.status = status;
+    }
+
+    const rides = await rideModel
+      .find(query)
+      .populate("user", "fullname phone email")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await rideModel.countDocuments(query);
+
+    console.log(`📊 Found ${rides.length} rides for captain ${captain.fullname.firstname}`);
+
+    res.status(200).json({
+      success: true,
+      rides,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    });
+
+  } catch (error) {
+    console.error("❌ Error getting captain ride history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get ride history",
+      error: error.message,
+      rides: [],
+      total: 0
+    });
+  }
+};

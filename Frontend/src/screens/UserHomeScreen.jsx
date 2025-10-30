@@ -224,7 +224,7 @@ function UserHomeScreen() {
     }
   };
 
-  const createRide = async () => {
+  const createRide = async (paymentMethod = null) => {
     try {
       setLoading(true);
       const response = await axios.post(
@@ -233,6 +233,7 @@ function UserHomeScreen() {
           pickup: pickupLocation,
           destination: destinationLocation,
           vehicleType: selectedVehicle,
+          paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
         },
         {
           headers: {
@@ -245,6 +246,7 @@ function UserHomeScreen() {
         pickup: pickupLocation,
         destination: destinationLocation,
         vehicleType: selectedVehicle,
+        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
         fare: fare,
         confirmedRideData: confirmedRideData,
         _id: response.data._id,
@@ -580,6 +582,20 @@ function UserHomeScreen() {
         onNavigate={navigateTo}
         currentPath={currentPath}
         onLogout={handleLogout}
+      />
+
+      {/* Header with Navigation */}
+      <Header
+        title="QuickRide"
+        showMenu={true}
+        showNotifications={true}
+        user={{
+          name: user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User',
+          avatar: user?.avatar
+        }}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo('/user/notifications')}
+        onProfileClick={() => navigateTo('/user/edit-profile')}
       />
       
       {/* Free OpenStreetMap with Route Visualization */}

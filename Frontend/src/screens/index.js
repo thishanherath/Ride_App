@@ -31,6 +31,16 @@ import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
 import MapScreen from "./MapScreen";
 
+// Payment screens
+import PaymentMethods from "./PaymentMethods";
+import PaymentHistory from "./PaymentHistory";
+
+// Notification screens
+import Notifications from "./Notifications";
+
+// Message screens
+import Messages from "./Messages";
+
 export {
   GetStarted,
   UserSignup,
@@ -54,5 +64,9 @@ export {
   AdminLogin,
   AdminDashboard,
   AdminUsers,
-  MapScreen
+  MapScreen,
+  PaymentMethods,
+  PaymentHistory,
+  Notifications,
+  Messages
 };

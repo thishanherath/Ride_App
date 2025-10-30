@@ -9,6 +9,7 @@ const ConfirmRideButton = ({
   disabled = false, 
   fare, 
   vehicleType,
+  paymentMethod,
   className = '' 
 }) => {
   const handleClick = () => {
@@ -36,7 +37,9 @@ const ConfirmRideButton = ({
             <p className="text-lg sm:text-xl font-bold text-orange-600">
               {formatCurrency(fare)}
             </p>
-            <p className="text-xs text-gray-500">Estimated</p>
+            <p className="text-xs text-gray-500">
+              {paymentMethod ? paymentMethod.name : 'Cash Payment'}
+            </p>
           </div>
         </div>
       </div>
@@ -65,6 +68,9 @@ const ConfirmRideButton = ({
             <>
               <CreditCard className="w-4 h-4" />
               <span>Confirm & Book Ride</span>
+              {paymentMethod && paymentMethod.type !== 'cash' && (
+                <span className="text-xs opacity-75">• {paymentMethod.name}</span>
+              )}
             </>
           )}
         </div>
