@@ -89,7 +89,7 @@ function Sidebar() {
               <div className="flex items-center gap-2 mt-1">
                 <User className="w-4 h-4" />
                 <span className="text-sm opacity-90">
-                  {newUser?.type === 'user' ? 'Rider' : 'Captain'}
+                  {newUser?.type === 'user' ? 'Rider' : 'Driver'}
                 </span>
               </div>
             </div>

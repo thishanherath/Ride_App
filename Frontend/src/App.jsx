@@ -19,9 +19,10 @@ import {
   VerifyEmail,
   ResetPassword,
   ForgotPassword,
-  AdminLogin,
+
   AdminDashboard,
   AdminUsers,
+  AdminCaptains,
   MapScreen,
   PaymentMethods,
   PaymentHistory,
@@ -109,10 +110,11 @@ function App() {
               <Route path="/:userType/forgot-password/" element={<ForgotPassword />} />
               <Route path="/:userType/reset-password/" element={<ResetPassword />} />
 
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
+              {/* Admin Routes - No separate login needed, use unified /login */}
+              <Route path="/admin/login" element={<Login />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/captains" element={<AdminCaptains />} />
 
               {/* Payment Routes */}
               <Route

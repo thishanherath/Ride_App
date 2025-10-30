@@ -17,31 +17,31 @@ const VehicleInfoCard = ({ vehicle, className = '' }) => {
   };
 
   return (
-    <Card className={`p-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+    <Card className={`p-3 sm:p-4 ${className}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 truncate">
             {vehicle?.number || 'N/A'}
           </h3>
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-gray-600 gap-1 sm:gap-0">
             <div className="flex items-center space-x-1">
-              <Palette className="w-4 h-4" />
-              <span>{vehicle?.color || 'N/A'}</span>
+              <Palette className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{vehicle?.color || 'N/A'}</span>
             </div>
             <div className="flex items-center space-x-1">
-              <Users className="w-4 h-4" />
+              <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
               <span>{vehicle?.capacity || 0} seats</span>
             </div>
           </div>
           <div className="mt-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
+            <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
               {vehicle?.type || 'car'}
             </span>
           </div>
         </div>
-        <div className="ml-4">
+        <div className="flex-shrink-0">
           <img
-            className="w-16 h-16 object-contain transform scale-x-[-1]"
+            className="w-12 h-12 sm:w-16 sm:h-16 object-contain transform scale-x-[-1]"
             src={getVehicleImage(vehicle?.type)}
             alt="Vehicle"
           />

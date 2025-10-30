@@ -208,7 +208,7 @@ const RideStatusNotification = ({
               )}
             </div>
 
-            {/* Captain Information */}
+            {/* Driver Information */}
             {captainInfo && rideStatus !== 'completed' && rideStatus !== 'cancelled' && (
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between mb-3">

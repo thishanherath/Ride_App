@@ -149,7 +149,7 @@ const RealTimeMap = ({
     const position = { lat: location.latitude, lng: location.longitude };
     
     updateMarker('captain', position, {
-      title: 'Captain Location',
+      title: 'Driver Location',
       icon: {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">

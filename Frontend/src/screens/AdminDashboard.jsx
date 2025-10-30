@@ -34,7 +34,7 @@ function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("adminToken");
+      const token = localStorage.getItem("token");
       const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       const response = await axios.get(`${serverUrl}/admin/dashboard`, {
@@ -47,9 +47,9 @@ function AdminDashboard() {
     } catch (error) {
       Console.error("Error fetching dashboard data:", error);
       if (error.response?.status === 401) {
-        localStorage.removeItem("adminToken");
-        localStorage.removeItem("adminData");
-        navigate("/admin/login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+        navigate("/login");
       }
     } finally {
       setLoading(false);
@@ -57,9 +57,9 @@ function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminData");
-    navigate("/admin/login");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+    navigate("/login");
   };
 
   const StatCard = ({ title, value, icon: Icon, color, change, changeType }) => (

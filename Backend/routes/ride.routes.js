@@ -48,6 +48,12 @@ router.post('/end-ride',
     rideController.endRide
 )
 
+router.post('/start-ride-direct',
+    authMiddleware.authCaptain,
+    body('rideId').isMongoId().withMessage('Invalid ride id'),
+    rideController.startRideDirect
+)
+
 // Get all available rides for captains
 router.get('/available-rides',
     authMiddleware.authCaptain,

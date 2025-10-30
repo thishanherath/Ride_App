@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Captain API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Captain API Test</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="testServerConnection()">Test Server Connection</button>
+    <button onclick="testCaptainProfile()">Test Captain Profile</button>
+    <button onclick="checkLocalStorage()">Check Local Storage</button>
+    <button onclick="clearAll()">Clear Results</button>
+    
+    <script>
+        const SERVER_URL = 'http://localhost:4000';
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        async function testServerConnection() {
+            addResult('🔍 Testing server connection...', 'info');
+            try {
+                const response = await fetch(`${SERVER_URL}/health`);
+                if (response.ok) {
+                    addResult('✅ Server is running!', 'success');
+                } else {
+                    addResult(`⚠️ Server responded with status: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Server connection failed: ${error.message}`, 'error');
+                addResult('💡 Make sure your backend is running on port 4000', 'info');
+            }
+        }
+        
+        async function testCaptainProfile() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                addResult('❌ No token found in localStorage', 'error');
+                addResult('💡 Please login as a captain first', 'info');
+                return;
+            }
+            
+            addResult('🔍 Testing captain profile API...', 'info');
+            addResult(`📡 Using token: ${token.substring(0, 20)}...`, 'info');
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/captain/profile`, {
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ Captain profile API success!', 'success');
+                    addResult(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                } else {
+                    addResult(`❌ Captain profile API failed: ${response.status}`, 'error');
+                    addResult(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Captain profile API error: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkLocalStorage() {
+            addResult('🔍 Checking localStorage...', 'info');
+            
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('userData');
+            
+            addResult(`Token: ${token ? '✅ Present' : '❌ Missing'}`, token ? 'success' : 'error');
+            
+            if (token) {
+                addResult(`Token length: ${token.length}`, 'info');
+            }
+            
+            addResult(`UserData: ${userData ? '✅ Present' : '❌ Missing'}`, userData ? 'success' : 'error');
+            
+            if (userData) {
+                try {
+                    const parsed = JSON.parse(userData);
+                    addResult(`<pre>${JSON.stringify(parsed, null, 2)}</pre>`, 'info');
+                } catch (e) {
+                    addResult(`❌ Invalid userData JSON: ${e.message}`, 'error');
+                }
+            }
+        }
+        
+        function clearAll() {
+            resultsDiv.innerHTML = '';
+        }
+        
+        // Auto-run initial checks
+        window.onload = function() {
+            addResult('🚀 Captain API Test Tool Loaded', 'info');
+            addResult('💡 Click buttons above to run tests', 'info');
+        };
+    </script>
+</body>
+</html>

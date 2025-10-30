@@ -26,9 +26,9 @@ import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
 
 // Admin screens
-import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
+import AdminCaptains from "./AdminCaptains";
 import MapScreen from "./MapScreen";
 
 // Payment screens
@@ -61,9 +61,10 @@ export {
   VerifyEmail,
   ResetPassword,
   ForgotPassword,
-  AdminLogin,
+
   AdminDashboard,
   AdminUsers,
+  AdminCaptains,
   MapScreen,
   PaymentMethods,
   PaymentHistory,
