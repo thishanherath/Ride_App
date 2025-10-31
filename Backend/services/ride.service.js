@@ -94,6 +94,7 @@ module.exports.createRide = async ({
       vehicle: vehicleType,
       distance: distanceTime.distance.value,
       duration: distanceTime.duration.value,
+      otp: getOtp(6), // Generate 6-digit OTP
     });
 
     return ride;
