@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Edit Profile Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #f9fafb;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin-bottom: 30px; 
+            padding: 20px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+        }
+        .success { border-color: #10b981; background: #f0fdf4; }
+        .error { border-color: #ef4444; background: #fef2f2; }
+        .warning { border-color: #f59e0b; background: #fffbeb; }
+        .info { border-color: #3b82f6; background: #eff6ff; }
+        
+        h1 { color: #1f2937; margin-bottom: 20px; }
+        h2 { color: #374151; margin-bottom: 15px; }
+        h3 { color: #4b5563; margin-bottom: 10px; }
+        
+        .test-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .test-item:last-child { border-bottom: none; }
+        
+        .status { 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: 600;
+        }
+        .status.pass { background: #dcfce7; color: #166534; }
+        .status.fail { background: #fee2e2; color: #991b1b; }
+        .status.unknown { background: #f3f4f6; color: #6b7280; }
+        
+        .route-test { 
+            display: block; 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            background: #3b82f6; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .route-test:hover { background: #2563eb; }
+        
+        .code { 
+            background: #f3f4f6; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 14px;
+        }
+        
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { 
+            padding: 8px 0; 
+            display: flex; 
+            align-items: center;
+        }
+        .checklist li::before { 
+            content: "✓"; 
+            color: #10b981; 
+            font-weight: bold; 
+            margin-right: 8px;
+        }
+        .checklist li.fail::before { 
+            content: "✗"; 
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 User Edit Profile Route Test</h1>
+        
+        <!-- Route Information -->
+        <div class="test-section info">
+            <h2>📍 Route Information</h2>
+            <div class="test-item">
+                <span>Target Route:</span>
+                <span class="code">/user/edit-profile</span>
+            </div>
+            <div class="test-item">
+                <span>Full URL:</span>
+                <span class="code">localhost:5173/user/edit-profile</span>
+            </div>
+            <div class="test-item">
+                <span>Component:</span>
+                <span class="code">UserEditProfile.jsx</span>
+            </div>
+            <div class="test-item">
+                <span>Protection:</span>
+                <span class="code">UserProtectedWrapper</span>
+            </div>
+        </div>
+
+        <!-- Quick Test -->
+        <div class="test-section success">
+            <h2>🚀 Quick Route Test</h2>
+            <p>Click the button below to test the route directly:</p>
+            <a href="/user/edit-profile" class="route-test">
+                Test /user/edit-profile Route
+            </a>
+            <p><small>Note: You need to be logged in as a user for this to work properly.</small></p>
+        </div>
+
+        <!-- Component Checklist -->
+        <div class="test-section">
+            <h2>✅ Component Requirements Checklist</h2>
+            <ul class="checklist">
+                <li>UserEditProfile component exists</li>
+                <li>Component imported in App.jsx</li>
+                <li>Route defined in App.jsx</li>
+                <li>UserProtectedWrapper applied</li>
+                <li>All UI components available (Input, Button, Card, etc.)</li>
+                <li>useAlert hook implemented</li>
+                <li>Form validation with react-hook-form</li>
+                <li>User context integration</li>
+            </ul>
+        </div>
+
+        <!-- Expected Features -->
+        <div class="test-section info">
+            <h2>🎯 Expected Features</h2>
+            <h3>Profile Management:</h3>
+            <ul>
+                <li>✏️ Edit first name and last name</li>
+                <li>📱 Update phone number</li>
+                <li>📧 View email (read-only)</li>
+                <li>🖼️ Upload profile picture</li>
+            </ul>
+            
+            <h3>Settings:</h3>
+            <ul>
+                <li>🔔 Notification preferences</li>
+                <li>📍 Location sharing settings</li>
+                <li>📧 Email preferences</li>
+                <li>🔒 Privacy controls</li>
+            </ul>
+            
+            <h3>Additional Features:</h3>
+            <ul>
+                <li>🔑 Change password link</li>
+                <li>❓ Help & support section</li>
+                <li>📋 Privacy policy access</li>
+                <li>📜 Terms of service</li>
+            </ul>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="test-section warning">
+            <h2>🔍 Troubleshooting</h2>
+            <h3>If the route doesn't work:</h3>
+            <ol>
+                <li><strong>Check Authentication:</strong> Make sure you're logged in as a user</li>
+                <li><strong>Check Console:</strong> Open browser dev tools for error messages</li>
+                <li><strong>Check Network:</strong> Verify API calls are working</li>
+                <li><strong>Check Components:</strong> Ensure all UI components are properly imported</li>
+            </ol>
+            
+            <h3>Common Issues:</h3>
+            <ul>
+                <li>🚫 <strong>401 Unauthorized:</strong> User not logged in or token expired</li>
+                <li>🚫 <strong>404 Not Found:</strong> Route not properly configured</li>
+                <li>🚫 <strong>Component Error:</strong> Missing imports or broken components</li>
+                <li>🚫 <strong>API Error:</strong> Backend not responding or wrong endpoint</li>
+            </ul>
+        </div>
+
+        <!-- API Endpoints -->
+        <div class="test-section">
+            <h2>🌐 API Integration</h2>
+            <div class="test-item">
+                <span>Update Profile:</span>
+                <span class="code">POST /user/update</span>
+            </div>
+            <div class="test-item">
+                <span>Authentication:</span>
+                <span class="code">Bearer token in headers</span>
+            </div>
+            <div class="test-item">
+                <span>User Context:</span>
+                <span class="code">useUser() hook</span>
+            </div>
+        </div>
+
+        <!-- Success Criteria -->
+        <div class="test-section success">
+            <h2>🎉 Success Criteria</h2>
+            <p>The route is working properly if you can:</p>
+            <ul class="checklist">
+                <li>Navigate to /user/edit-profile without errors</li>
+                <li>See the profile edit form with current user data</li>
+                <li>Edit and save profile information</li>
+                <li>See success/error messages</li>
+                <li>Navigate back to home after saving</li>
+                <li>Toggle notification and privacy settings</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔧 User Edit Profile Route Test Loaded');
+        console.log('Target Route: /user/edit-profile');
+        console.log('Expected: Fully functional profile editing interface');
+        
+        // Check if we're already on the target route
+        if (window.location.pathname === '/user/edit-profile') {
+            console.log('✅ Already on target route!');
+        } else {
+            console.log('ℹ️ Navigate to /user/edit-profile to test');
+        }
+    </script>
+</body>
+</html>

@@ -122,20 +122,48 @@ module.exports.updateUserProfile = asyncHandler(async (req, res) => {
     return res.status(400).json(errors.array());
   }
 
-  const { fullname,  phone } = req.body;
+  const { fullname, phone } = req.body;
+  
+  // Prepare update data
+  const updateData = {
+    fullname: fullname,
+    phone,
+  };
+
+  // If a profile picture was uploaded, add it to update data
+  if (req.file) {
+    updateData.profilePicture = `/uploads/profile-pictures/${req.file.filename}`;
+  }
 
   const updatedUserData = await userModel.findOneAndUpdate(
     { _id: req.user._id },
-    {
-      fullname: fullname,
-      phone,
-    },
+    updateData,
     { new: true }
   );
 
   res
     .status(200)
     .json({ message: "Profile updated successfully", user: updatedUserData });
+});
+
+module.exports.uploadProfilePicture = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  const profilePictureUrl = `/uploads/profile-pictures/${req.file.filename}`;
+  
+  const updatedUser = await userModel.findOneAndUpdate(
+    { _id: req.user._id },
+    { profilePicture: profilePictureUrl },
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: "Profile picture uploaded successfully",
+    profilePicture: profilePictureUrl,
+    user: updatedUser
+  });
 });
 
 module.exports.logoutUser = asyncHandler(async (req, res) => {

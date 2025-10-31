@@ -38,6 +38,9 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files for uploads
+app.use('/uploads', express.static('uploads'));
+
 if (process.env.ENVIRONMENT == "production") {
   keepServerRunning();
 }
