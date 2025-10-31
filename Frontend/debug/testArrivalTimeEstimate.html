@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArrivalTimeEstimate Component Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .test-section h3 {
+            margin-top: 0;
+            color: #1f2937;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .controls button:hover {
+            background: #f3f4f6;
+        }
+        
+        .controls button.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .status-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        /* Mock component styles */
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: #374151;
+        }
+        
+        .button:hover {
+            background: #f9fafb;
+        }
+        
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .clock-icon, .refresh-icon, .map-pin-icon {
+            width: 16px;
+            height: 16px;
+            background: #6b7280;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .refresh-icon.animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>ArrivalTimeEstimate Component Test</h1>
+        <p>This page demonstrates the ArrivalTimeEstimate component with various states and configurations.</p>
+        
+        <div class="test-section">
+            <h3>Interactive Demo</h3>
+            <div class="controls">
+                <button onclick="setArrivalTime(5)">5 minutes</button>
+                <button onclick="setArrivalTime(1)">1 minute</button>
+                <button onclick="setArrivalTime(0)">Arrived</button>
+                <button onclick="setArrivalTime(0.5)">30 seconds</button>
+                <button onclick="setArrivalTime(15)">15 minutes</button>
+                <button onclick="setArrivalTime(null)">No time</button>
+                <button onclick="toggleUpdating()">Toggle Updating</button>
+                <button onclick="toggleCompact()">Toggle Compact</button>
+                <button onclick="updateLastUpdated()">Update Time</button>
+            </div>
+            <div class="status-info">
+                Current State: <span id="current-state">5 minutes, not updating, normal size</span>
+            </div>
+            <div id="interactive-demo"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Different Time Formats</h3>
+            <div class="test-grid" id="time-formats"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Loading and Error States</h3>
+            <div class="test-grid" id="loading-states"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Compact vs Normal Layout</h3>
+            <div class="test-grid" id="layout-comparison"></div>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Mock UI Components
+        const Card = ({ children, className = '', ...props }) => (
+            <div className={`card ${className}`} {...props}>
+                {children}
+            </div>
+        );
+
+        const Button = ({ children, onClick, disabled, icon, className = '', ...props }) => (
+            <button 
+                onClick={onClick} 
+                disabled={disabled} 
+                className={`button ${className}`}
+                {...props}
+            >
+                {icon}
+                {children}
+            </button>
+        );
+
+        const LoadingSpinner = ({ className = '', ...props }) => (
+            <div className={`spinner ${className}`} {...props} />
+        );
+
+        // Mock Icons
+        const Clock = ({ className = '' }) => <div className={`clock-icon ${className}`} />;
+        const RefreshCw = ({ className = '' }) => <div className={`refresh-icon ${className}`} />;
+        const MapPin = ({ className = '' }) => <div className={`map-pin-icon ${className}`} />;
+
+        // ArrivalTimeEstimate Component (simplified version for demo)
+        const ArrivalTimeEstimate = ({
+            estimatedArrival,
+            isUpdating = false,
+            lastUpdated,
+            onRefresh,
+            compact = false,
+            className = ''
+        }) => {
+            const [displayTime, setDisplayTime] = useState(estimatedArrival);
+
+            const formatArrivalTime = useCallback((minutes) => {
+                if (typeof minutes !== 'number' || minutes < 0) {
+                    return null;
+                }
+
+                if (minutes === 0) {
+                    return 'Arriving now';
+                }
+
+                if (minutes < 1) {
+                    return 'Less than 1 minute';
+                }
+
+                if (minutes === 1) {
+                    return '1 minute';
+                }
+
+                return `${Math.round(minutes)} minutes`;
+            }, []);
+
+            const formatLastUpdated = useCallback((date) => {
+                if (!date) return null;
+
+                const now = new Date();
+                const diffMs = now - new Date(date);
+                const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+                if (diffMinutes < 1) {
+                    return 'Just now';
+                }
+
+                if (diffMinutes === 1) {
+                    return '1 minute ago';
+                }
+
+                if (diffMinutes < 60) {
+                    return `${diffMinutes} minutes ago`;
+                }
+
+                return date.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }, []);
+
+            useEffect(() => {
+                if (typeof estimatedArrival === 'number' && estimatedArrival >= 0) {
+                    setDisplayTime(estimatedArrival);
+                }
+            }, [estimatedArrival]);
+
+            const getDisplayContent = () => {
+                if (isUpdating) {
+                    return {
+                        mainText: 'Calculating...',
+                        subText: 'Getting latest arrival time',
+                        showSpinner: true
+                    };
+                }
+
+                const formattedTime = formatArrivalTime(displayTime);
+                
+                if (!formattedTime) {
+                    return {
+                        mainText: 'Driver is on the way',
+                        subText: 'Arrival time will be updated shortly',
+                        showSpinner: false
+                    };
+                }
+
+                if (displayTime === 0) {
+                    return {
+                        mainText: 'Driver has arrived!',
+                        subText: 'Look for your driver',
+                        showSpinner: false,
+                        isArrived: true
+                    };
+                }
+
+                return {
+                    mainText: `Arriving in ${formattedTime}`,
+                    subText: lastUpdated ? `Updated ${formatLastUpdated(lastUpdated)}` : null,
+                    showSpinner: false
+                };
+            };
+
+            const content = getDisplayContent();
+            const canRefresh = onRefresh && !isUpdating;
+            const lastUpdatedText = formatLastUpdated(lastUpdated);
+
+            return (
+                <Card 
+                    className={`arrival-time-estimate ${compact ? 'arrival-time-estimate--compact' : ''} ${content.isArrived ? 'arrival-time-estimate--arrived' : ''} ${className}`}
+                    style={{ 
+                        padding: compact ? '16px' : '20px',
+                        background: content.isArrived ? 'rgba(34, 197, 94, 0.05)' : '#f8fafc',
+                        border: content.isArrived ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid #e5e7eb'
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                width: compact ? '36px' : '48px',
+                                height: compact ? '36px' : '48px',
+                                borderRadius: '50%',
+                                background: content.isArrived ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)'
+                            }}>
+                                {content.showSpinner ? (
+                                    <LoadingSpinner />
+                                ) : content.isArrived ? (
+                                    <MapPin />
+                                ) : (
+                                    <Clock />
+                                )}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ 
+                                    fontSize: compact ? '1.125rem' : '1.5rem',
+                                    fontWeight: '700',
+                                    color: content.isArrived ? '#22c55e' : '#1f2937',
+                                    lineHeight: '1.2',
+                                    marginBottom: '0.25rem'
+                                }}>
+                                    {content.mainText}
+                                </div>
+                                
+                                {content.subText && (
+                                    <div style={{ 
+                                        fontSize: compact ? '0.75rem' : '0.875rem',
+                                        color: '#6b7280',
+                                        lineHeight: '1.4'
+                                    }}>
+                                        {content.subText}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {canRefresh && (
+                            <Button
+                                onClick={onRefresh}
+                                disabled={isUpdating}
+                                icon={<RefreshCw className={isUpdating ? 'animate-spin' : ''} />}
+                            >
+                                {isUpdating ? 'Updating...' : 'Refresh'}
+                            </Button>
+                        )}
+                    </div>
+
+                    {lastUpdatedText && !compact && !isUpdating && (
+                        <div style={{ 
+                            marginTop: '0.75rem',
+                            paddingTop: '0.75rem',
+                            borderTop: '1px solid #e5e7eb',
+                            fontSize: '0.75rem',
+                            color: '#9ca3af',
+                            fontStyle: 'italic'
+                        }}>
+                            Last updated: {lastUpdatedText}
+                        </div>
+                    )}
+                </Card>
+            );
+        };
+
+        // Demo State Management
+        let demoState = {
+            estimatedArrival: 5,
+            isUpdating: false,
+            compact: false,
+            lastUpdated: new Date()
+        };
+
+        function updateCurrentState() {
+            const stateText = `${demoState.estimatedArrival === null ? 'No time' : demoState.estimatedArrival + ' minutes'}, ${demoState.isUpdating ? 'updating' : 'not updating'}, ${demoState.compact ? 'compact' : 'normal size'}`;
+            document.getElementById('current-state').textContent = stateText;
+        }
+
+        function setArrivalTime(minutes) {
+            demoState.estimatedArrival = minutes;
+            renderInteractiveDemo();
+            updateCurrentState();
+        }
+
+        function toggleUpdating() {
+            demoState.isUpdating = !demoState.isUpdating;
+            renderInteractiveDemo();
+            updateCurrentState();
+        }
+
+        function toggleCompact() {
+            demoState.compact = !demoState.compact;
+            renderInteractiveDemo();
+            updateCurrentState();
+        }
+
+        function updateLastUpdated() {
+            demoState.lastUpdated = new Date();
+            renderInteractiveDemo();
+            updateCurrentState();
+        }
+
+        function renderInteractiveDemo() {
+            ReactDOM.render(
+                <ArrivalTimeEstimate
+                    estimatedArrival={demoState.estimatedArrival}
+                    isUpdating={demoState.isUpdating}
+                    lastUpdated={demoState.lastUpdated}
+                    compact={demoState.compact}
+                    onRefresh={() => {
+                        console.log('Refresh clicked!');
+                        demoState.lastUpdated = new Date();
+                        renderInteractiveDemo();
+                    }}
+                />,
+                document.getElementById('interactive-demo')
+            );
+        }
+
+        function renderTimeFormats() {
+            const timeFormats = [
+                { time: 0, label: 'Driver Arrived' },
+                { time: 0.5, label: 'Less than 1 minute' },
+                { time: 1, label: 'Exactly 1 minute' },
+                { time: 5, label: 'Normal time' },
+                { time: 15, label: 'Longer wait' },
+                { time: null, label: 'No time available' }
+            ];
+
+            const elements = timeFormats.map((format, index) => (
+                <div key={index}>
+                    <h4>{format.label}</h4>
+                    <ArrivalTimeEstimate
+                        estimatedArrival={format.time}
+                        lastUpdated={new Date(Date.now() - 2 * 60 * 1000)}
+                        onRefresh={() => console.log(`Refresh ${format.label}`)}
+                    />
+                </div>
+            ));
+
+            ReactDOM.render(<>{elements}</>, document.getElementById('time-formats'));
+        }
+
+        function renderLoadingStates() {
+            const states = [
+                { 
+                    props: { estimatedArrival: 5, isUpdating: true },
+                    label: 'Loading/Updating State'
+                },
+                { 
+                    props: { estimatedArrival: null },
+                    label: 'No Data Available'
+                },
+                { 
+                    props: { estimatedArrival: -5 },
+                    label: 'Invalid Time'
+                }
+            ];
+
+            const elements = states.map((state, index) => (
+                <div key={index}>
+                    <h4>{state.label}</h4>
+                    <ArrivalTimeEstimate
+                        {...state.props}
+                        onRefresh={() => console.log(`Refresh ${state.label}`)}
+                    />
+                </div>
+            ));
+
+            ReactDOM.render(<>{elements}</>, document.getElementById('loading-states'));
+        }
+
+        function renderLayoutComparison() {
+            const layouts = [
+                { 
+                    props: { estimatedArrival: 7, compact: false },
+                    label: 'Normal Layout'
+                },
+                { 
+                    props: { estimatedArrival: 7, compact: true },
+                    label: 'Compact Layout'
+                }
+            ];
+
+            const elements = layouts.map((layout, index) => (
+                <div key={index}>
+                    <h4>{layout.label}</h4>
+                    <ArrivalTimeEstimate
+                        {...layout.props}
+                        lastUpdated={new Date(Date.now() - 3 * 60 * 1000)}
+                        onRefresh={() => console.log(`Refresh ${layout.label}`)}
+                    />
+                </div>
+            ));
+
+            ReactDOM.render(<>{elements}</>, document.getElementById('layout-comparison'));
+        }
+
+        // Initialize all demos
+        renderInteractiveDemo();
+        renderTimeFormats();
+        renderLoadingStates();
+        renderLayoutComparison();
+        updateCurrentState();
+    </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Vehicle Details Test</title>
+    <script type="module" src="http://localhost:5173/@vite/client"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+        .demo-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .demo-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Driver Vehicle Details Component Test</h1>
+        
+        <div class="demo-section">
+            <div class="demo-title">Complete Vehicle Data</div>
+            <div id="complete-vehicle"></div>
+        </div>
+        
+        <div class="demo-section">
+            <div class="demo-title">Minimal Vehicle Data</div>
+            <div id="minimal-vehicle"></div>
+        </div>
+        
+        <div class="demo-section">
+            <div class="demo-title">Compact Variant</div>
+            <div class="demo-grid">
+                <div id="compact-vehicle"></div>
+                <div id="compact-suv"></div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <div class="demo-title">Loading State</div>
+            <div id="loading-vehicle"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import React from 'react';
+        import { createRoot } from 'react-dom/client';
+        import DriverVehicleDetails from '../src/components/driver-acceptance/DriverVehicleDetails.jsx';
+        
+        // Import CSS
+        import '../src/styles/design-system.css';
+        import '../src/components/ui/Card.css';
+        import '../src/components/driver-acceptance/DriverVehicleDetails.css';
+
+        const completeVehicle = {
+            id: 'vehicle-123',
+            make: 'Toyota',
+            model: 'Camry',
+            color: 'Blue',
+            licensePlate: 'ABC123',
+            type: 'sedan',
+            year: 2022,
+            capacity: 4
+        };
+
+        const minimalVehicle = {
+            id: 'vehicle-456',
+            make: 'Honda',
+            model: 'Civic',
+            color: 'Red',
+            licensePlate: 'XYZ789',
+            type: 'hatchback'
+        };
+
+        const suvVehicle = {
+            id: 'vehicle-789',
+            make: 'Ford',
+            model: 'Explorer',
+            color: 'Black',
+            licensePlate: 'SUV456',
+            type: 'suv',
+            year: 2023,
+            capacity: 7
+        };
+
+        // Render complete vehicle
+        const completeRoot = createRoot(document.getElementById('complete-vehicle'));
+        completeRoot.render(React.createElement(DriverVehicleDetails, { vehicle: completeVehicle }));
+
+        // Render minimal vehicle
+        const minimalRoot = createRoot(document.getElementById('minimal-vehicle'));
+        minimalRoot.render(React.createElement(DriverVehicleDetails, { vehicle: minimalVehicle }));
+
+        // Render compact vehicle
+        const compactRoot = createRoot(document.getElementById('compact-vehicle'));
+        compactRoot.render(React.createElement(DriverVehicleDetails, { vehicle: completeVehicle, compact: true }));
+
+        // Render compact SUV
+        const compactSuvRoot = createRoot(document.getElementById('compact-suv'));
+        compactSuvRoot.render(React.createElement(DriverVehicleDetails, { vehicle: suvVehicle, compact: true }));
+
+        // Render loading state
+        const loadingRoot = createRoot(document.getElementById('loading-vehicle'));
+        loadingRoot.render(React.createElement(DriverVehicleDetails, { vehicle: null }));
+    </script>
+</body>
+</html>

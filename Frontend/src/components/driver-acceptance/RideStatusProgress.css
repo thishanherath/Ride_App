@@ -1,0 +1,408 @@
+/* RideStatusProgress Component Styles */
+
+.ride-status-progress {
+  --status-success: #22c55e;
+  --status-primary: #3b82f6;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-neutral: #6b7280;
+  --bg-light: #f8fafc;
+  --border-light: #e2e8f0;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+}
+
+.ride-status-progress__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Current Status Header */
+.ride-status-progress__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ride-status-progress__current-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+}
+
+.ride-status-progress__current-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.ride-status-progress__current-icon--success {
+  background-color: var(--status-success);
+  color: white;
+}
+
+.ride-status-progress__current-icon--primary {
+  background-color: var(--status-primary);
+  color: white;
+}
+
+.ride-status-progress__current-icon--warning {
+  background-color: var(--status-warning);
+  color: white;
+}
+
+.ride-status-progress__current-icon--error {
+  background-color: var(--status-error);
+  color: white;
+}
+
+.ride-status-progress__current-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ride-status-progress__current-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+  line-height: 1.4;
+}
+
+.ride-status-progress__current-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ride-status-progress__timestamp {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-light);
+  border-radius: 0.375rem;
+  border: 1px solid var(--border-light);
+}
+
+/* Timeline Styles */
+.ride-status-progress__timeline {
+  border-top: 1px solid var(--border-light);
+  padding-top: 1.5rem;
+}
+
+.ride-status-progress__timeline-header {
+  margin-bottom: 1rem;
+}
+
+.ride-status-progress__timeline-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ride-status-progress__steps {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ride-status-progress__step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.ride-status-progress__connector {
+  position: absolute;
+  left: 1rem;
+  top: -1rem;
+  width: 2px;
+  height: 1rem;
+  background-color: var(--border-light);
+  transition: background-color 0.3s ease;
+}
+
+.ride-status-progress__connector--completed {
+  background-color: var(--status-success);
+}
+
+.ride-status-progress__step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background-color: white;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.ride-status-progress__step-icon--success {
+  border-color: var(--status-success);
+}
+
+.ride-status-progress__step-icon--primary {
+  border-color: var(--status-primary);
+}
+
+.ride-status-progress__step-icon--warning {
+  border-color: var(--status-warning);
+}
+
+.ride-status-progress__step-icon--error {
+  border-color: var(--status-error);
+}
+
+.ride-status-progress__step-icon--completed {
+  background-color: var(--status-success);
+  border-color: var(--status-success);
+  color: white;
+}
+
+.ride-status-progress__step-icon--current {
+  border-width: 3px;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.ride-status-progress__step-icon--current.ride-status-progress__step-icon--success {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+.ride-status-progress__step-icon--current.ride-status-progress__step-icon--warning {
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+}
+
+.ride-status-progress__step-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ride-status-progress__step-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.ride-status-progress__step--completed .ride-status-progress__step-label {
+  color: var(--status-success);
+}
+
+.ride-status-progress__step--current .ride-status-progress__step-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ride-status-progress__step-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+}
+
+/* Next Step Preview */
+.ride-status-progress__next-step {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ride-status-progress__next-step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ride-status-progress__next-step-icon {
+  color: var(--status-primary);
+}
+
+.ride-status-progress__next-step-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--status-primary);
+}
+
+.ride-status-progress__next-step-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Cancelled Status Special Display */
+.ride-status-progress__cancelled {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.ride-status-progress__cancelled-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.ride-status-progress__cancelled-icon {
+  color: var(--status-error);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.ride-status-progress__cancelled-text {
+  flex: 1;
+}
+
+.ride-status-progress__cancelled-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--status-error);
+  margin: 0 0 0.25rem 0;
+}
+
+.ride-status-progress__cancelled-description {
+  font-size: 0.875rem;
+  color: #991b1b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Animations */
+@keyframes statusChange {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ride-status-progress__step--current .ride-status-progress__step-icon {
+  animation: statusChange 0.5s ease-out;
+}
+
+.ride-status-progress__current-icon {
+  animation: statusChange 0.5s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ride-status-progress__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .ride-status-progress__timestamp {
+    align-self: flex-start;
+  }
+
+  .ride-status-progress__current-label {
+    font-size: 1.125rem;
+  }
+
+  .ride-status-progress__current-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .ride-status-progress__steps {
+    gap: 0.75rem;
+  }
+
+  .ride-status-progress__step-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .ride-status-progress__connector {
+    left: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ride-status-progress__content {
+    gap: 1rem;
+  }
+
+  .ride-status-progress__timeline {
+    padding-top: 1rem;
+  }
+
+  .ride-status-progress__current-status {
+    gap: 0.75rem;
+  }
+
+  .ride-status-progress__current-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .ride-status-progress__next-step,
+  .ride-status-progress__cancelled {
+    padding: 0.75rem;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .ride-status-progress__step-icon {
+    border-width: 3px;
+  }
+
+  .ride-status-progress__connector {
+    width: 3px;
+  }
+
+  .ride-status-progress__current-icon {
+    border: 2px solid white;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .ride-status-progress__step-icon,
+  .ride-status-progress__current-icon,
+  .ride-status-progress__connector {
+    transition: none;
+  }
+
+  .ride-status-progress__step--current .ride-status-progress__step-icon,
+  .ride-status-progress__current-icon {
+    animation: none;
+  }
+
+  .ride-status-progress__step-icon--current {
+    transform: none;
+  }
+}

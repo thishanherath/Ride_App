@@ -1,0 +1,256 @@
+/* DriverProfileCard Component Styles */
+
+.driver-profile-card {
+  --avatar-size: 64px;
+  --avatar-size-compact: 48px;
+  
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  transition: var(--transition-normal);
+}
+
+.driver-profile-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Main Content Layout */
+.driver-profile-card__content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+/* Avatar Styles */
+.driver-profile-card__avatar-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.driver-profile-card__avatar {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg-primary);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-normal);
+}
+
+.driver-profile-card__avatar--fallback {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 3px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.driver-profile-card__avatar-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Loading Skeleton */
+.driver-profile-card__avatar--skeleton {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, #f0f0f0 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Driver Information */
+.driver-profile-card__info {
+  flex: 1;
+  min-width: 0; /* Prevent flex item from overflowing */
+}
+
+.driver-profile-card__header {
+  margin-bottom: var(--space-2);
+}
+
+.driver-profile-card__name {
+  font-size: var(--heading-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.3;
+}
+
+.driver-profile-card__name--skeleton {
+  height: 20px;
+  width: 120px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+}
+
+.driver-profile-card__rating {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.driver-profile-card__rating--skeleton {
+  height: 16px;
+  width: 100px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+}
+
+/* Stats Section */
+.driver-profile-card__stats {
+  margin-bottom: var(--space-3);
+}
+
+.driver-profile-card__rides-badge {
+  font-size: var(--body-sm);
+}
+
+.driver-profile-card__rides--skeleton {
+  height: 24px;
+  width: 140px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  animation: shimmer 1.5s infinite;
+}
+
+/* Action Buttons */
+.driver-profile-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.driver-profile-card__action-button {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* Compact Mode */
+.driver-profile-card--compact {
+  --avatar-size: var(--avatar-size-compact);
+}
+
+.driver-profile-card--compact .driver-profile-card__content {
+  gap: var(--space-3);
+}
+
+.driver-profile-card--compact .driver-profile-card__name {
+  font-size: var(--body-lg);
+  margin-bottom: var(--space-1);
+}
+
+.driver-profile-card--compact .driver-profile-card__stats {
+  margin-bottom: var(--space-2);
+}
+
+.driver-profile-card--compact .driver-profile-card__avatar-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Compact Actions */
+.driver-profile-card__compact-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-light);
+}
+
+.driver-profile-card__compact-action {
+  padding: var(--space-2);
+  min-width: auto;
+}
+
+/* Loading State */
+.driver-profile-card--loading {
+  pointer-events: none;
+}
+
+.driver-profile-card--loading .driver-profile-card__content {
+  opacity: 0.7;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .driver-profile-card__content {
+    gap: var(--space-3);
+  }
+  
+  .driver-profile-card__actions {
+    flex-direction: column;
+  }
+  
+  .driver-profile-card__action-button {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+.driver-profile-card__avatar:focus,
+.driver-profile-card__action-button:focus,
+.driver-profile-card__compact-action:focus {
+  outline: 2px solid var(--primary-orange);
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .driver-profile-card {
+    border-width: 2px;
+  }
+  
+  .driver-profile-card__avatar {
+    border-width: 2px;
+  }
+  
+  .driver-profile-card__avatar--fallback {
+    border-width: 2px;
+    background: var(--bg-primary);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .driver-profile-card,
+  .driver-profile-card__avatar {
+    transition: none;
+  }
+  
+  .driver-profile-card__avatar--skeleton,
+  .driver-profile-card__name--skeleton,
+  .driver-profile-card__rating--skeleton,
+  .driver-profile-card__rides--skeleton {
+    animation: none;
+    background: var(--bg-secondary);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .driver-profile-card__actions,
+  .driver-profile-card__compact-actions {
+    display: none;
+  }
+  
+  .driver-profile-card {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+}

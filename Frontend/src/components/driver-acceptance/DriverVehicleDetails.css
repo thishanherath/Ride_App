@@ -1,0 +1,334 @@
+/* DriverVehicleDetails Component Styles */
+
+.driver-vehicle-details {
+  --vehicle-primary: var(--primary-orange);
+  --vehicle-secondary: var(--text-secondary);
+  --vehicle-muted: var(--text-muted);
+  --license-bg: #1F2937;
+  --license-text: #FFFFFF;
+  --license-border: #374151;
+}
+
+.driver-vehicle-details__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Header Section */
+.driver-vehicle-details__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.driver-vehicle-details__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+.driver-vehicle-details__emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.driver-vehicle-details__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-vehicle-details__title {
+  font-size: var(--heading-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.2;
+}
+
+.driver-vehicle-details__type-badge {
+  margin-top: var(--space-1);
+}
+
+/* License Plate Section - Prominent Display */
+.driver-vehicle-details__license-section {
+  text-align: center;
+  padding: var(--space-4) var(--space-2);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, #F1F5F9 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+.driver-vehicle-details__license-label {
+  font-size: var(--body-sm);
+  font-weight: var(--font-medium);
+  color: var(--vehicle-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-2);
+}
+
+.driver-vehicle-details__license-plate {
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: var(--font-bold);
+  color: var(--license-text);
+  background: var(--license-bg);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 3px solid var(--license-border);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.driver-vehicle-details__license-plate::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--license-border), #4B5563);
+  border-radius: var(--radius-md);
+  z-index: -1;
+}
+
+/* Vehicle Information */
+.driver-vehicle-details__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.driver-vehicle-details__info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.driver-vehicle-details__info-row:last-child {
+  border-bottom: none;
+}
+
+.driver-vehicle-details__info-label {
+  font-size: var(--body-md);
+  font-weight: var(--font-medium);
+  color: var(--vehicle-secondary);
+  flex-shrink: 0;
+}
+
+.driver-vehicle-details__info-value {
+  font-size: var(--body-md);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Color Display */
+.driver-vehicle-details__color {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.driver-vehicle-details__color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-medium);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Helper Section */
+.driver-vehicle-details__helper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-selected);
+  border-radius: var(--radius-md);
+  border: 1px solid #FED7AA;
+}
+
+.driver-vehicle-details__helper-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--vehicle-primary);
+  flex-shrink: 0;
+}
+
+.driver-vehicle-details__helper-text {
+  font-size: var(--body-sm);
+  color: var(--vehicle-primary);
+  font-weight: var(--font-medium);
+  line-height: 1.4;
+}
+
+/* Compact Variant */
+.driver-vehicle-details--compact .driver-vehicle-details__content {
+  gap: var(--space-3);
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__icon {
+  width: 40px;
+  height: 40px;
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__emoji {
+  font-size: 20px;
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__title {
+  font-size: var(--body-lg);
+  margin-bottom: var(--space-1);
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__license-section {
+  padding: var(--space-3);
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__license-plate {
+  font-size: 1.25rem;
+  padding: var(--space-2) var(--space-4);
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__info {
+  gap: var(--space-2);
+}
+
+.driver-vehicle-details--compact .driver-vehicle-details__helper {
+  padding: var(--space-2);
+}
+
+/* Loading State */
+.driver-vehicle-details--loading .driver-vehicle-details__content {
+  gap: var(--space-4);
+}
+
+.driver-vehicle-details__icon-placeholder,
+.driver-vehicle-details__title-placeholder,
+.driver-vehicle-details__license-placeholder,
+.driver-vehicle-details__info-placeholder {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, #E2E8F0 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+.driver-vehicle-details__icon-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+}
+
+.driver-vehicle-details__title-placeholder {
+  height: 20px;
+  width: 120px;
+  margin-top: var(--space-1);
+}
+
+.driver-vehicle-details__license-placeholder {
+  height: 60px;
+  width: 200px;
+  margin: 0 auto;
+}
+
+.driver-vehicle-details__info-placeholder {
+  height: 80px;
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .driver-vehicle-details__license-plate {
+    font-size: 1.25rem;
+    padding: var(--space-2) var(--space-4);
+    letter-spacing: 1px;
+  }
+  
+  .driver-vehicle-details__info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+  
+  .driver-vehicle-details__info-value {
+    text-align: left;
+  }
+  
+  .driver-vehicle-details__color {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .driver-vehicle-details__header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-2);
+  }
+  
+  .driver-vehicle-details__license-section {
+    padding: var(--space-3);
+  }
+  
+  .driver-vehicle-details__license-plate {
+    font-size: 1.125rem;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .driver-vehicle-details__license-plate {
+    background: #000000;
+    color: #FFFFFF;
+    border-color: #FFFFFF;
+  }
+  
+  .driver-vehicle-details__color-dot {
+    border-width: 3px;
+    border-color: var(--text-primary);
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .driver-vehicle-details__icon,
+  .driver-vehicle-details__license-plate {
+    transition: none;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% {
+      background-position: 0 0;
+    }
+  }
+}
