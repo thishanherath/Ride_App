@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button, Input, Card, FileUpload, Toggle, Toast } from "../components/ui";
-import { Container, Header } from "../components/layout";
 import axios from "axios";
 import { useUser } from "../contexts/UserContext";
-import { ArrowLeft, User, Settings, Bell, Shield, HelpCircle } from "lucide-react";
+import { ArrowLeft, User, Settings, Bell, Shield, HelpCircle, X } from "lucide-react";
 import Console from "../utils/console";
 import { useAlert } from "../hooks/useAlert";
 
@@ -28,39 +27,61 @@ function UserEditProfile() {
     setValue,
   } = useForm();
 
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const navigation = useNavigate();
 
   const updateUserProfile = async (data) => {
-    const userData = {
-      fullname: {
-        firstname: data.firstname,
-        lastname: data.lastname,
-      },
-      phone: data.phone,
-    };
-    
-    Console.log(userData);
     try {
       setLoading(true);
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('fullname[firstname]', data.firstname);
+      formData.append('fullname[lastname]', data.lastname);
+      formData.append('phone', data.phone);
+      
+      // Add profile picture if selected
+      if (profilePicture && typeof profilePicture !== 'string') {
+        formData.append('profilePicture', profilePicture);
+      }
+      
+      Console.log('Updating profile with data:', data);
+      Console.log('Profile picture:', profilePicture);
+      
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/user/update`,
-        userData,
+        formData,
         {
           headers: {
             token: token,
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
-      Console.log(response);
+      
+      Console.log('Profile update response:', response);
+      
+      // Update user context with new data
+      if (response.data.user) {
+        // Update localStorage
+        const userData = JSON.parse(localStorage.getItem("userData"));
+        if (userData) {
+          userData.data = response.data.user;
+          localStorage.setItem("userData", JSON.stringify(userData));
+        }
+        
+        // Update user context
+        setUser(response.data.user);
+      }
+      
       showAlert('Profile Updated', 'Your profile has been successfully updated', 'success');
 
       setTimeout(() => {
         navigation("/home");
       }, 2000);
     } catch (error) {
-      showAlert('Update Failed', error.response?.data?.[0]?.msg || 'Failed to update profile', 'error');
-      Console.log(error.response);
+      showAlert('Update Failed', error.response?.data?.message || error.response?.data?.[0]?.msg || 'Failed to update profile', 'error');
+      Console.log('Profile update error:', error.response);
     } finally {
       setLoading(false);
     }
@@ -73,11 +94,56 @@ function UserEditProfile() {
     }));
   };
 
+  const uploadProfilePictureOnly = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/user/upload-profile-picture`,
+        formData,
+        {
+          headers: {
+            token: token,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      
+      Console.log('Profile picture upload response:', response);
+      
+      // Update user context with new profile picture
+      if (response.data.user) {
+        const userData = JSON.parse(localStorage.getItem("userData"));
+        if (userData) {
+          userData.data = response.data.user;
+          localStorage.setItem("userData", JSON.stringify(userData));
+        }
+        
+        // Update user context
+        setUser(response.data.user);
+      }
+      
+      showAlert('Profile Picture Updated', 'Your profile picture has been updated successfully', 'success');
+      
+      return response.data.profilePicture;
+    } catch (error) {
+      showAlert('Upload Failed', error.response?.data?.message || 'Failed to upload profile picture', 'error');
+      Console.log('Profile picture upload error:', error.response);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (user) {
       setValue('firstname', user.fullname?.firstname || '');
       setValue('lastname', user.fullname?.lastname || '');
       setValue('phone', user.phone || '');
+      
+      // Set existing profile picture if available
+      if (user.profilePicture) {
+        setProfilePicture(`${import.meta.env.VITE_SERVER_URL}${user.profilePicture}`);
+      }
     }
   }, [user, setValue]);
 
@@ -85,52 +151,93 @@ function UserEditProfile() {
     <div className="min-h-screen bg-gray-50">
       {/* Modern Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <Container>
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigation(-1)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-xl font-semibold text-gray-900">Edit Profile</h1>
-            </div>
+        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigation(-1)}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-900">Edit Profile</h1>
           </div>
-        </Container>
+        </div>
       </div>
 
-      <Container className="py-6 space-y-6">
+      {/* Main Content with Responsive Layout */}
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
         {/* Profile Picture Section */}
         <Card className="p-6">
-          <div className="flex items-center space-x-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
             <div className="flex-shrink-0">
-              <FileUpload
-                preview={true}
-                value={profilePicture}
-                onChange={setProfilePicture}
-                accept="image/*"
-                className="w-24 h-24"
-              />
+              <div className="relative">
+                {profilePicture ? (
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
+                      <img 
+                        src={typeof profilePicture === 'string' ? profilePicture : URL.createObjectURL(profilePicture)} 
+                        alt="Profile preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProfilePicture(null)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div 
+                    className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-colors"
+                    onClick={() => document.getElementById('profile-upload')?.click()}
+                  >
+                    <User className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                <input
+                  id="profile-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Show preview immediately
+                      setProfilePicture(file);
+                      
+                      // Upload to server immediately
+                      const uploadedUrl = await uploadProfilePictureOnly(file);
+                      if (uploadedUrl) {
+                        // Update preview with server URL
+                        setProfilePicture(`${import.meta.env.VITE_SERVER_URL}${uploadedUrl}`);
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+              </div>
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-medium text-gray-900 mb-2">Profile Picture</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Upload a profile picture to personalize your account. This helps captains identify you during rides.
               </p>
-              <div className="flex space-x-3">
+              <div className="flex flex-wrap gap-3">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => document.querySelector('input[type="file"]')?.click()}
+                  onClick={() => document.getElementById('profile-upload')?.click()}
                 >
-                  Change Photo
+                  {profilePicture ? 'Change Photo' : 'Upload Photo'}
                 </Button>
                 {profilePicture && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => setProfilePicture(null)}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
                   >
                     Remove
                   </Button>
@@ -158,7 +265,7 @@ function UserEditProfile() {
               className="bg-gray-100"
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="First Name"
                 {...register('firstname', { 
@@ -293,7 +400,8 @@ function UserEditProfile() {
             </button>
           </div>
         </Card>
-      </Container>
+        </div>
+      </div>
 
       {/* Toast Notifications */}
       {alert.isVisible && (

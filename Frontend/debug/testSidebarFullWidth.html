@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Full Width Test</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        
+        /* Header similar to UserHomeScreen */
+        .header { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            height: 60px; 
+            background: linear-gradient(to right, #ff6b35, #ff8a65); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px;
+            z-index: 30;
+        }
+        
+        /* Hamburger Menu Button */
+        .hamburger { 
+            position: fixed; 
+            top: 15px; 
+            right: 15px; 
+            z-index: 9999;
+            background: white; 
+            border: none; 
+            padding: 10px; 
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger.open {
+            right: 20px;
+            top: 20px;
+        }
+        
+        /* Backdrop */
+        .backdrop { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.5); 
+            z-index: 9997;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .backdrop.show { 
+            opacity: 1; 
+            pointer-events: auto;
+        }
+        
+        /* Sidebar */
+        .sidebar { 
+            position: fixed; 
+            top: 0;
+            left: -100%; 
+            width: 100%; 
+            height: 100vh; 
+            background: white; 
+            transition: left 0.3s ease;
+            z-index: 9998;
+            overflow-y: auto;
+        }
+        .sidebar.open { 
+            left: 0; 
+        }
+        
+        /* Sidebar Header */
+        .sidebar-header {
+            background: linear-gradient(to right, #ff6b35, #ff8a65);
+            color: white;
+            padding: 24px;
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .menu-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .menu-item.active {
+            background-color: #fff7ed;
+        }
+        
+        .menu-icon {
+            width: 48px;
+            height: 48px;
+            background: #f3f4f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .menu-icon.active {
+            background: #ff6b35;
+            color: white;
+        }
+        
+        .content { 
+            margin-top: 80px; 
+            padding: 20px; 
+        }
+        
+        .test-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (similar to UserHomeScreen) -->
+    <div class="header">
+        <h1>QuickRide</h1>
+        <div style="margin-left: auto;">
+            <span>AS</span>
+            <span style="margin-left: 10px;">sumane</span>
+        </div>
+    </div>
+    
+    <!-- Hamburger Menu Button -->
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+        <span id="hamburger-icon">☰</span>
+    </button>
+    
+    <!-- Backdrop -->
+    <div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">
+                    AS
+                </div>
+                <div>
+                    <h2 style="margin: 0; font-size: 20px;">sumane</h2>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                        <span style="font-size: 14px; opacity: 0.9;">👤 Rider</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-content">
+            <h3 style="color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">MAIN MENU</h3>
+            
+            <div class="menu-item active">
+                <div class="menu-icon active">🏠</div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600;">Home</h4>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Book your next ride</p>
+                </div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-icon">🕒</div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600;">Ride History</h4>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">View past trips</p>
+                </div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-icon">💬</div>
+                <div style="flex: 1;">
+                    <h4 style="margin: 0; font-weight: 600;">Messages</h4>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Chat with drivers</p>
+                </div>
+                <div style="width: 24px; height: 24px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">2</div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-icon">👤</div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600;">Profile</h4>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Manage your account</p>
+                </div>
+            </div>
+            
+            <h3 style="color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 32px 0 16px 0;">SETTINGS & SUPPORT</h3>
+            
+            <div class="menu-item">
+                <div class="menu-icon">💳</div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600;">Payment Methods</h4>
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Cards & wallets</p>
+                </div>
+            </div>
+            
+            <div class="menu-item" style="color: #ef4444; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                <div class="menu-icon" style="background: #fef2f2; color: #ef4444;">🚪</div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600;">Sign Out</h4>
+                    <p style="margin: 0; font-size: 14px; color: #ef4444;">Logout from your account</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="content">
+        <h2>Main Content</h2>
+        <p>Click the hamburger menu (☰) to test the sidebar.</p>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+            <li>✅ Sidebar should cover the ENTIRE screen width</li>
+            <li>✅ Navigation header should be completely hidden behind sidebar</li>
+            <li>✅ Hamburger button should remain visible in top-right corner</li>
+            <li>✅ Semi-transparent backdrop should dim the background</li>
+            <li>✅ Click outside or X button to close</li>
+        </ul>
+    </div>
+    
+    <!-- Test Info -->
+    <div class="test-info">
+        <strong>Sidebar Full Width Test</strong><br>
+        Expected: Sidebar covers 100% width<br>
+        Header should be completely hidden<br>
+        Z-Index: Sidebar (9998) > Header (30)
+    </div>
+    
+    <script>
+        let sidebarOpen = false;
+        
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            updateSidebar();
+        }
+        
+        function closeSidebar() {
+            sidebarOpen = false;
+            updateSidebar();
+        }
+        
+        function updateSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('backdrop');
+            const hamburger = document.getElementById('hamburger');
+            const hamburgerIcon = document.getElementById('hamburger-icon');
+            
+            if (sidebarOpen) {
+                sidebar.classList.add('open');
+                backdrop.classList.add('show');
+                hamburger.classList.add('open');
+                hamburgerIcon.innerHTML = '✕';
+            } else {
+                sidebar.classList.remove('open');
+                backdrop.classList.remove('show');
+                hamburger.classList.remove('open');
+                hamburgerIcon.innerHTML = '☰';
+            }
+        }
+        
+        console.log('Sidebar Full Width Test Loaded');
+        console.log('Expected: Sidebar should cover 100% width and hide header completely');
+    </script>
+</body>
+</html>
