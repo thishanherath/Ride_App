@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Refresh Button Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .demo-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .demo-title {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #1f2937;
+        }
+
+        /* Progress Container */
+        .progress-container {
+            position: relative;
+            margin: 16px 0;
+        }
+
+        /* Progress Header with Refresh Button */
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .progress-refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-refresh-btn.active:hover {
+            border-color: #f97316;
+            color: #f97316;
+            background: #fff7ed;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(249, 115, 22, 0.15);
+        }
+
+        .progress-refresh-btn.refreshing {
+            border-color: #f97316;
+            color: #f97316;
+            background: #fff7ed;
+            cursor: not-allowed;
+            box-shadow: 0 2px 4px rgba(249, 115, 22, 0.1);
+        }
+
+        .progress-refresh-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f9fafb;
+            color: #9ca3af;
+        }
+
+        .refresh-text {
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Progress Track */
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f97316, #10b981);
+            border-radius: 4px;
+            position: relative;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .progress-percentage {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Demo Controls */
+        .demo-controls {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .demo-btn {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            color: #374151;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .demo-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .demo-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .demo-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        /* Refresh Icon Animation */
+        .refresh-icon {
+            transition: transform 0.5s ease;
+        }
+
+        .refresh-icon.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status Messages */
+        .status-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .status-message.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .status-message.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h2 class="demo-title">🔄 Progress Refresh Button Demo</h2>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <span class="progress-label">Search Progress</span>
+                <button 
+                    id="progressRefreshBtn"
+                    class="progress-refresh-btn active"
+                    onclick="handleProgressRefresh()"
+                >
+                    <svg class="refresh-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="refresh-text">Refresh</span>
+                </button>
+            </div>
+            
+            <div class="progress-track">
+                <div id="progressFill" class="progress-fill" style="width: 45%;"></div>
+            </div>
+            
+            <div id="progressPercentage" class="progress-percentage">45%</div>
+        </div>
+
+        <div id="statusMessage" class="status-message info">
+            Click the refresh button to update progress status
+        </div>
+
+        <div class="demo-controls">
+            <button class="demo-btn primary" onclick="simulateProgress()">Simulate Progress</button>
+            <button class="demo-btn" onclick="resetProgress()">Reset Progress</button>
+            <button class="demo-btn" onclick="completeProgress()">Complete Progress</button>
+        </div>
+    </div>
+
+    <script>
+        let currentProgress = 45;
+        let isRefreshing = false;
+
+        function handleProgressRefresh() {
+            if (isRefreshing) return;
+            
+            const btn = document.getElementById('progressRefreshBtn');
+            const icon = btn.querySelector('.refresh-icon');
+            const text = btn.querySelector('.refresh-text');
+            const statusMsg = document.getElementById('statusMessage');
+            
+            // Start refreshing state
+            isRefreshing = true;
+            btn.classList.remove('active');
+            btn.classList.add('refreshing');
+            icon.classList.add('spinning');
+            text.textContent = 'Refreshing...';
+            
+            statusMsg.className = 'status-message info';
+            statusMsg.textContent = '🔄 Refreshing progress status...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Simulate progress update
+                const newProgress = Math.min(currentProgress + Math.random() * 20, 100);
+                updateProgress(newProgress);
+                
+                // End refreshing state
+                isRefreshing = false;
+                btn.classList.remove('refreshing');
+                btn.classList.add('active');
+                icon.classList.remove('spinning');
+                text.textContent = 'Refresh';
+                
+                statusMsg.className = 'status-message success';
+                statusMsg.textContent = `✅ Progress updated to ${Math.round(newProgress)}%`;
+                
+                // Clear success message after 3 seconds
+                setTimeout(() => {
+                    statusMsg.className = 'status-message info';
+                    statusMsg.textContent = 'Click the refresh button to update progress status';
+                }, 3000);
+                
+            }, 1500);
+        }
+
+        function updateProgress(progress) {
+            currentProgress = progress;
+            const fill = document.getElementById('progressFill');
+            const percentage = document.getElementById('progressPercentage');
+            
+            fill.style.width = progress + '%';
+            percentage.textContent = Math.round(progress) + '%';
+        }
+
+        function simulateProgress() {
+            const newProgress = Math.min(currentProgress + 15, 100);
+            updateProgress(newProgress);
+            
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.className = 'status-message info';
+            statusMsg.textContent = `📈 Progress simulated: ${Math.round(newProgress)}%`;
+        }
+
+        function resetProgress() {
+            updateProgress(20);
+            
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.className = 'status-message warning';
+            statusMsg.textContent = '🔄 Progress reset to 20%';
+        }
+
+        function completeProgress() {
+            updateProgress(100);
+            
+            const btn = document.getElementById('progressRefreshBtn');
+            btn.classList.remove('active');
+            btn.classList.add('disabled');
+            btn.disabled = true;
+            
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.className = 'status-message success';
+            statusMsg.textContent = '🎉 Progress completed! Refresh button disabled.';
+        }
+
+        // Demo instructions
+        console.log('🎯 Progress Refresh Button Demo');
+        console.log('Features:');
+        console.log('- Click refresh button to update progress');
+        console.log('- Visual feedback with spinning animation');
+        console.log('- Button states: active, refreshing, disabled');
+        console.log('- Automatic progress updates');
+    </script>
+</body>
+</html>

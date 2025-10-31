@@ -165,9 +165,19 @@ const RideSearchProgress = ({
     if (isRefreshing || driverInfo) return;
     
     setIsRefreshing(true);
-    console.log('🔄 Refreshing ride status for ride ID:', rideId);
+    console.log('🔄 Refreshing progress component for ride ID:', rideId);
     
     try {
+      // Visual feedback - animate progress bar during refresh
+      const originalProgress = progress;
+      setProgress(10);
+      
+      setTimeout(() => {
+        if (isSearching && !driverInfo) {
+          animateProgress(originalProgress);
+        }
+      }, 300);
+
       // Call the refresh callback if provided
       if (onRefresh) {
         await onRefresh(rideId);
@@ -184,11 +194,11 @@ const RideSearchProgress = ({
           
           if (response.ok) {
             const rideData = await response.json();
-            console.log('📊 Ride status refresh result:', rideData);
+            console.log('📊 Progress component refresh result:', rideData);
             
             // Check if driver has been assigned
             if (rideData.captain && rideData.status === 'confirmed') {
-              console.log('🎉 Driver found via refresh!');
+              console.log('🎉 Driver found via progress refresh!');
               
               // Trigger the same flow as socket event
               const driverData = {
@@ -206,33 +216,42 @@ const RideSearchProgress = ({
               setIsSearching(false);
               setShowSuccess(true);
               setCurrentStep(2);
-              animateProgress(100);
+              animateProgress(75);
               setDriverInfo(driverData);
 
               if (onDriverAccepted) {
                 onDriverAccepted(driverData);
               }
 
-              setTimeout(() => setShowSuccess(false), 3000);
+              // Hide success animation after 3 seconds, then show driver en route
+              setTimeout(() => {
+                setShowSuccess(false);
+                setCurrentStep(3);
+                animateProgress(100);
+              }, 3000);
+            } else {
+              // No driver yet, continue searching animation
+              console.log('🔍 No driver assigned yet, continuing search...');
+              if (isSearching) {
+                animateProgress(Math.min(progress + 5, 70)); // Increment progress slightly
+              }
             }
+          } else {
+            console.log('⚠️ Failed to fetch ride status');
           }
         }
       }
       
-      // Reset search animation to show activity
-      if (isSearching && !driverInfo) {
-        setProgress(30);
-        setTimeout(() => {
-          animateProgress(50);
-        }, 200);
-      }
-      
     } catch (error) {
-      console.error('❌ Refresh failed:', error);
+      console.error('❌ Progress refresh failed:', error);
+      // Reset to original progress on error
+      if (isSearching && !driverInfo) {
+        animateProgress(50);
+      }
     } finally {
       setTimeout(() => {
         setIsRefreshing(false);
-      }, 1000);
+      }, 1200);
     }
   };
 
@@ -284,8 +303,28 @@ const RideSearchProgress = ({
             </p>
           </div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar with Refresh Button */}
           <div className="progress-container">
+            <div className="progress-header">
+              <span className="progress-label">Search Progress</span>
+              <button 
+                onClick={handleRefresh}
+                disabled={isRefreshing || driverInfo}
+                className={`progress-refresh-btn ${
+                  isRefreshing 
+                    ? 'refreshing' 
+                    : driverInfo 
+                      ? 'disabled' 
+                      : 'active'
+                }`}
+                title="Refresh progress status"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="refresh-text">
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </span>
+              </button>
+            </div>
             <div className="progress-track">
               <div 
                 className="progress-fill"
