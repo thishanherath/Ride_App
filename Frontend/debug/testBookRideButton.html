@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Ride Button Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .test-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .fare-summary {
+            background: linear-gradient(135deg, #fff7ed, #fed7aa);
+            border: 2px solid #fb923c;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .fare-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .vehicle-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .vehicle-icon {
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vehicle-details h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 4px 0;
+        }
+        
+        .vehicle-details p {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        .fare-display {
+            text-align: right;
+        }
+        
+        .fare-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ea580c;
+            margin: 0;
+        }
+        
+        .payment-method {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        .book-ride-button {
+            width: 100%;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .book-ride-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #ea580c, #dc2626);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        }
+        
+        .book-ride-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .book-ride-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        .book-ride-button.loading {
+            background: #f97316;
+        }
+        
+        .payment-info {
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .features-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .test-controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 4px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #2563eb;
+        }
+        
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            color: #15803d;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 style="text-align: center; margin-bottom: 20px; color: #1f2937;">🚗 Book Ride Button Test</h2>
+        
+        <!-- Fare Summary -->
+        <div class="fare-summary">
+            <div class="fare-info">
+                <div class="vehicle-info">
+                    <div class="vehicle-icon">🚗</div>
+                    <div class="vehicle-details">
+                        <h3>QuickCar</h3>
+                        <p>Total fare</p>
+                    </div>
+                </div>
+                <div class="fare-display">
+                    <p class="fare-amount">Rs. 1,250</p>
+                    <p class="payment-method">Cash Payment</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Book Ride Button -->
+        <button id="bookRideButton" class="book-ride-button" onclick="handleBookRide()">
+            <span id="buttonIcon">🚗</span>
+            <span id="buttonText">Book Ride</span>
+            <span id="buttonPrice">• Rs. 1,250</span>
+        </button>
+        
+        <!-- Payment Info & Features -->
+        <div class="payment-info">
+            💳 Cash Payment • 🛡️ Insured • 📍 GPS tracked
+        </div>
+        <div class="features-info">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Available drivers nearby</span>
+            </div>
+            <span>•</span>
+            <span>2-5 min pickup time</span>
+        </div>
+        
+        <!-- Success/Error Messages -->
+        <div id="successMessage" class="success-message">
+            🎉 Ride booked successfully! Looking for nearby drivers...
+        </div>
+        <div id="errorMessage" class="error-message">
+            ❌ Booking failed. Please try again.
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="test-controls">
+            <h4 style="margin: 0 0 12px 0; color: #1f2937;">Test Controls:</h4>
+            <button class="test-button" onclick="resetButton()">Reset Button</button>
+            <button class="test-button" onclick="simulateError()">Test Error</button>
+            <button class="test-button" onclick="simulateSuccess()">Test Success</button>
+            <button class="test-button" onclick="toggleDisabled()">Toggle Disabled</button>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+        let isDisabled = false;
+
+        function handleBookRide() {
+            console.log('🚗 Book Ride button clicked!');
+            
+            if (isLoading || isDisabled) {
+                console.log('Button click ignored - loading or disabled');
+                return;
+            }
+            
+            // Show confirmation dialog
+            const confirmed = confirm(
+                '🚗 Book CAR ride for Rs. 1,250?\n\n' +
+                '💳 Payment: Cash Payment\n' +
+                '📱 You\'ll receive booking confirmation shortly.'
+            );
+            
+            if (!confirmed) {
+                console.log('❌ User cancelled booking');
+                return;
+            }
+            
+            // Start loading state
+            setLoadingState(true);
+            
+            // Simulate booking process
+            setTimeout(() => {
+                // Simulate success (80% chance) or error (20% chance)
+                if (Math.random() > 0.2) {
+                    showSuccess();
+                } else {
+                    showError();
+                }
+                setLoadingState(false);
+            }, 2000);
+        }
+        
+        function setLoadingState(loading) {
+            isLoading = loading;
+            const button = document.getElementById('bookRideButton');
+            const icon = document.getElementById('buttonIcon');
+            const text = document.getElementById('buttonText');
+            const price = document.getElementById('buttonPrice');
+            
+            if (loading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                icon.innerHTML = '<div class="loading-spinner"></div>';
+                text.textContent = 'Booking Ride...';
+                price.style.display = 'none';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = isDisabled;
+                icon.textContent = '🚗';
+                text.textContent = 'Book Ride';
+                price.style.display = 'inline';
+                price.textContent = '• Rs. 1,250';
+            }
+        }
+        
+        function showSuccess() {
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'block';
+            
+            // Vibrate if supported
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 100, 50]);
+            }
+            
+            console.log('🎉 Ride booking successful!');
+            
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showError() {
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'block';
+            
+            console.log('❌ Ride booking failed!');
+            
+            setTimeout(() => {
+                errorMsg.style.display = 'none';
+            }, 5000);
+        }
+        
+        function resetButton() {
+            setLoadingState(false);
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            isDisabled = false;
+            console.log('🔄 Button reset');
+        }
+        
+        function simulateError() {
+            setLoadingState(true);
+            setTimeout(() => {
+                showError();
+                setLoadingState(false);
+            }, 1000);
+        }
+        
+        function simulateSuccess() {
+            setLoadingState(true);
+            setTimeout(() => {
+                showSuccess();
+                setLoadingState(false);
+            }, 1000);
+        }
+        
+        function toggleDisabled() {
+            isDisabled = !isDisabled;
+            const button = document.getElementById('bookRideButton');
+            button.disabled = isDisabled;
+            
+            if (isDisabled) {
+                button.style.background = '#9ca3af';
+                document.getElementById('buttonText').textContent = 'Complete Trip Details';
+            } else {
+                button.style.background = 'linear-gradient(135deg, #f97316, #ea580c)';
+                document.getElementById('buttonText').textContent = 'Book Ride';
+            }
+            
+            console.log(`Button ${isDisabled ? 'disabled' : 'enabled'}`);
+        }
+        
+        // Initialize
+        console.log('🚀 Book Ride Button Test initialized');
+        console.log('Click the "Book Ride" button to test the functionality');
+    </script>
+</body>
+</html>

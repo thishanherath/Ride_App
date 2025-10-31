@@ -7,6 +7,7 @@ import {
   RideDetails,
   LocationPermission,
 } from "../components";
+import ModernRideConfirmation from "../components/ModernRideConfirmation";
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
 
@@ -227,6 +228,40 @@ function UserHomeScreen() {
   const createRide = async (paymentMethod = null) => {
     try {
       setLoading(true);
+      
+      // Enhanced validation
+      if (!pickupLocation || !destinationLocation) {
+        alert('Please select both pickup and destination locations');
+        setLoading(false);
+        return;
+      }
+      
+      if (!selectedVehicle) {
+        alert('Please select a vehicle type');
+        setLoading(false);
+        return;
+      }
+      
+      if (!fare || !fare[selectedVehicle] || fare[selectedVehicle] <= 0) {
+        alert('Fare information is not available. Please try again.');
+        setLoading(false);
+        return;
+      }
+      
+      if (!token) {
+        alert('Authentication required. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🚀 Creating ride with data:', {
+        pickup: pickupLocation,
+        destination: destinationLocation,
+        vehicleType: selectedVehicle,
+        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
+        fare: fare[selectedVehicle]
+      });
+
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/ride/create`,
         {
@@ -241,7 +276,9 @@ function UserHomeScreen() {
           },
         }
       );
-      Console.log(response);
+      
+      console.log('✅ Ride creation response:', response.data);
+      
       const rideData = {
         pickup: pickupLocation,
         destination: destinationLocation,
@@ -255,6 +292,9 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
+      // Show success message
+      console.log('🎉 Ride created successfully! Looking for drivers...');
+
       // Automatically cancel the ride after 5 minutes (300000ms) if no driver accepts
       const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000; // 5 minutes fallback
       rideTimeout.current = setTimeout(() => {
@@ -263,8 +303,27 @@ function UserHomeScreen() {
       }, timeoutDuration);
       
     } catch (error) {
-      Console.log(error);
+      console.error('❌ Ride creation failed:', error);
       setLoading(false);
+      
+      // Enhanced error handling
+      let errorMessage = 'Failed to create ride. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error('Server error response:', error.response.data);
+        errorMessage = error.response.data.message || error.response.data.error || errorMessage;
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('Network error:', error.request);
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        // Something else happened
+        console.error('Error details:', error.message);
+        errorMessage = error.message || errorMessage;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -749,21 +808,40 @@ function UserHomeScreen() {
         fare={fare}
       />
 
-      {/* Ride Details Panel */}
-      <RideDetails
-        pickupLocation={pickupLocation}
-        destinationLocation={destinationLocation}
-        selectedVehicle={selectedVehicle}
-        fare={fare}
-        showPanel={showRideDetailsPanel}
-        setShowPanel={setShowRideDetailsPanel}
-        showPreviousPanel={setShowSelectVehiclePanel}
-        createRide={createRide}
-        cancelRide={cancelRide}
-        loading={loading}
-        rideCreated={rideCreated}
-        confirmedRideData={confirmedRideData}
-      />
+      {/* Modern Ride Confirmation Panel */}
+      {!rideCreated && !confirmedRideData ? (
+        <ModernRideConfirmation
+          pickupLocation={pickupLocation}
+          destinationLocation={destinationLocation}
+          selectedVehicle={selectedVehicle}
+          fare={fare}
+          showPanel={showRideDetailsPanel}
+          setShowPanel={setShowRideDetailsPanel}
+          showPreviousPanel={setShowSelectVehiclePanel}
+          createRide={createRide}
+          loading={loading}
+          onBack={() => {
+            setShowRideDetailsPanel(false);
+            setShowSelectVehiclePanel(true);
+          }}
+        />
+      ) : (
+        /* Original Ride Details Panel for active rides */
+        <RideDetails
+          pickupLocation={pickupLocation}
+          destinationLocation={destinationLocation}
+          selectedVehicle={selectedVehicle}
+          fare={fare}
+          showPanel={showRideDetailsPanel}
+          setShowPanel={setShowRideDetailsPanel}
+          showPreviousPanel={setShowSelectVehiclePanel}
+          createRide={createRide}
+          cancelRide={cancelRide}
+          loading={loading}
+          rideCreated={rideCreated}
+          confirmedRideData={confirmedRideData}
+        />
+      )}
 
       {/* Location Permission Modal */}
       {showLocationPermission && (

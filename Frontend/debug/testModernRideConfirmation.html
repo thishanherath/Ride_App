@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Ride Confirmation Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .test-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mock-confirmation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(0);
+            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mock-confirmation.hidden {
+            transform: translateY(100%);
+        }
+        
+        .confirmation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            background: white;
+        }
+        
+        .back-button {
+            padding: 8px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background: #f3f4f6;
+        }
+        
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+        
+        .confirmation-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .vehicle-card {
+            background: linear-gradient(135deg, #fff7ed, #fed7aa);
+            border: 2px solid #fb923c;
+            border-radius: 16px;
+            padding: 16px;
+        }
+        
+        .vehicle-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .vehicle-icon {
+            width: 64px;
+            height: 64px;
+            background: white;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vehicle-details {
+            flex: 1;
+        }
+        
+        .vehicle-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .vehicle-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .vehicle-meta {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .fare-display {
+            text-align: right;
+        }
+        
+        .fare-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ea580c;
+        }
+        
+        .fare-badge {
+            background: #fbbf24;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .location-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .location-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-top: 2px;
+        }
+        
+        .location-dot.pickup {
+            background: #10b981;
+        }
+        
+        .location-dot.destination {
+            background: #ef4444;
+        }
+        
+        .location-label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .location-address {
+            color: #1f2937;
+            font-weight: 500;
+        }
+        
+        .route-line {
+            display: flex;
+            justify-center;
+            margin: 8px 0;
+        }
+        
+        .route-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .fare-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .fare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .fare-item.total {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+            font-weight: 600;
+        }
+        
+        .payment-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .payment-method {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .payment-method:hover {
+            border-color: #d1d5db;
+        }
+        
+        .payment-method.selected {
+            border-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .payment-icon {
+            font-size: 20px;
+        }
+        
+        .payment-info {
+            flex: 1;
+        }
+        
+        .payment-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .payment-description {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .safety-features {
+            background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .safety-list {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .safety-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .confirmation-footer {
+            padding: 16px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+        
+        .confirm-button {
+            width: 100%;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        
+        .confirm-button:hover {
+            background: linear-gradient(135deg, #ea580c, #dc2626);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        }
+        
+        .payment-info {
+            margin-top: 12px;
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .test-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        
+        .test-button:hover {
+            background: #2563eb;
+        }
+        
+        @media (min-width: 640px) {
+            .mock-confirmation {
+                max-width: 600px;
+                margin: 0 auto;
+                border-radius: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- Test Controls -->
+        <div class="test-controls">
+            <h3 style="margin: 0 0 12px 0;">Modern Ride Confirmation Test</h3>
+            <button class="test-button" onclick="showConfirmation()">Show Confirmation</button>
+            <button class="test-button" onclick="hideConfirmation()">Hide Confirmation</button>
+            <button class="test-button" onclick="testConfirmButton()">Test Confirm</button>
+        </div>
+
+        <!-- Mock Modern Ride Confirmation -->
+        <div id="mockConfirmation" class="mock-confirmation">
+            <!-- Header -->
+            <div class="confirmation-header">
+                <button class="back-button" onclick="hideConfirmation()">
+                    ← 
+                </button>
+                <h1 class="confirmation-title">Confirm your ride</h1>
+                <div style="width: 32px;"></div>
+            </div>
+
+            <!-- Content -->
+            <div class="confirmation-content">
+                <!-- Selected Vehicle Card -->
+                <div class="vehicle-card">
+                    <div class="vehicle-info">
+                        <div class="vehicle-icon">🚗</div>
+                        <div class="vehicle-details">
+                            <div class="vehicle-name">QuickCar ✓</div>
+                            <div class="vehicle-description">Comfortable rides for 1-4 people</div>
+                            <div class="vehicle-meta">⏰ 2-3 min away • 1-4 people</div>
+                        </div>
+                        <div class="fare-display">
+                            <div class="fare-amount">Rs. 1,250</div>
+                            <div class="fare-badge">Estimated</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trip Details -->
+                <div class="card">
+                    <div class="card-header">
+                        <span style="color: #3b82f6;">🗺️</span>
+                        <h3 class="card-title">Trip Details</h3>
+                    </div>
+                    
+                    <div class="location-item">
+                        <div class="location-dot pickup"></div>
+                        <div>
+                            <div class="location-label" style="color: #059669;">Pickup 📍</div>
+                            <div class="location-address">Colombo Fort Railway Station</div>
+                        </div>
+                    </div>
+                    
+                    <div class="route-line">
+                        <div style="width: 2px; height: 32px; background: linear-gradient(to bottom, #10b981, #ef4444); border-radius: 2px;"></div>
+                    </div>
+                    
+                    <div class="location-item">
+                        <div class="location-dot destination"></div>
+                        <div>
+                            <div class="location-label" style="color: #dc2626;">Destination 🎯</div>
+                            <div class="location-address">Bandaranaike International Airport</div>
+                        </div>
+                    </div>
+                    
+                    <div class="route-stats">
+                        <div class="stat">
+                            <div class="stat-value">25.4 km</div>
+                            <div class="stat-label">Distance</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">45 min</div>
+                            <div class="stat-label">Duration</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fare Breakdown -->
+                <div class="card">
+                    <div class="card-header">
+                        <span style="color: #f97316;">💳</span>
+                        <h3 class="card-title">Fare Breakdown</h3>
+                    </div>
+                    
+                    <div class="fare-breakdown">
+                        <div class="fare-item">
+                            <span>Base fare</span>
+                            <span>Rs. 750</span>
+                        </div>
+                        <div class="fare-item">
+                            <span>Distance charge</span>
+                            <span>Rs. 375</span>
+                        </div>
+                        <div class="fare-item">
+                            <span>Service fee</span>
+                            <span>Rs. 125</span>
+                        </div>
+                        <div class="fare-item total">
+                            <span style="font-size: 18px;">Total</span>
+                            <span style="font-size: 24px; color: #ea580c;">Rs. 1,250</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Payment Method</h3>
+                    </div>
+                    
+                    <div class="payment-methods">
+                        <div class="payment-method selected" onclick="selectPayment(this)">
+                            <div class="payment-icon">💵</div>
+                            <div class="payment-info">
+                                <div class="payment-name">Cash Payment</div>
+                                <div class="payment-description">Pay with cash to driver</div>
+                            </div>
+                            <div>✓</div>
+                        </div>
+                        <div class="payment-method" onclick="selectPayment(this)">
+                            <div class="payment-icon">💳</div>
+                            <div class="payment-info">
+                                <div class="payment-name">Credit/Debit Card</div>
+                                <div class="payment-description">Pay with your card</div>
+                            </div>
+                        </div>
+                        <div class="payment-method" onclick="selectPayment(this)">
+                            <div class="payment-icon">📱</div>
+                            <div class="payment-info">
+                                <div class="payment-name">Digital Wallet</div>
+                                <div class="payment-description">Pay with digital wallet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Safety Features -->
+                <div class="safety-features">
+                    <div class="safety-list">
+                        <div class="safety-item">
+                            <span>🛡️</span>
+                            <span style="color: #059669;">Insured ride</span>
+                        </div>
+                        <div class="safety-item">
+                            <span>📍</span>
+                            <span style="color: #3b82f6;">GPS tracked</span>
+                        </div>
+                        <div class="safety-item">
+                            <span>⏰</span>
+                            <span style="color: #7c3aed;">24/7 support</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="confirmation-footer">
+                <button class="confirm-button" onclick="testConfirmButton()">
+                    🚗 Confirm & Book Ride - Rs. 1,250
+                </button>
+                <div class="payment-info">
+                    💳 Cash Payment • 🛡️ Insured • 📍 GPS tracked
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showConfirmation() {
+            const confirmation = document.getElementById('mockConfirmation');
+            confirmation.classList.remove('hidden');
+            console.log('✅ Showing modern ride confirmation');
+        }
+
+        function hideConfirmation() {
+            const confirmation = document.getElementById('mockConfirmation');
+            confirmation.classList.add('hidden');
+            console.log('❌ Hiding ride confirmation');
+        }
+
+        function selectPayment(element) {
+            // Remove selected class from all payment methods
+            document.querySelectorAll('.payment-method').forEach(method => {
+                method.classList.remove('selected');
+                method.querySelector('div:last-child').textContent = '';
+            });
+            
+            // Add selected class to clicked method
+            element.classList.add('selected');
+            element.querySelector('div:last-child').textContent = '✓';
+            
+            const paymentName = element.querySelector('.payment-name').textContent;
+            console.log('💳 Selected payment method:', paymentName);
+        }
+
+        function testConfirmButton() {
+            const button = document.querySelector('.confirm-button');
+            const originalText = button.textContent;
+            
+            // Show loading state
+            button.textContent = '⏳ Booking your ride...';
+            button.style.background = '#9ca3af';
+            button.disabled = true;
+            
+            console.log('🚀 Testing ride confirmation...');
+            
+            // Simulate API call
+            setTimeout(() => {
+                button.textContent = '✅ Ride Confirmed!';
+                button.style.background = '#22c55e';
+                
+                console.log('✅ Ride confirmation successful!');
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = 'linear-gradient(135deg, #f97316, #ea580c)';
+                    button.disabled = false;
+                }, 2000);
+            }, 2000);
+        }
+
+        // Initialize
+        console.log('🚀 Modern Ride Confirmation Test loaded');
+        console.log('Use the buttons in the top-left to test the interface');
+        
+        // Show confirmation by default
+        showConfirmation();
+    </script>
+</body>
+</html>

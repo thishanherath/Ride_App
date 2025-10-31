@@ -1,0 +1,451 @@
+/* Modern Ride Confirmation Styles */
+
+.modern-ride-confirmation {
+    /* Ensure proper z-index and positioning */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-ride-confirmation.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.modern-ride-confirmation.hide {
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+/* Card styling */
+.confirmation-card {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1), 0 -10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: none;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header styling */
+.confirmation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    flex-shrink: 0;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.back-button {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-button:hover {
+    background: #f3f4f6;
+}
+
+.confirmation-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Content area */
+.confirmation-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Vehicle card styling */
+.selected-vehicle-card {
+    background: linear-gradient(135deg, #fff7ed, #fed7aa);
+    border: 2px solid #fb923c;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.vehicle-info-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.vehicle-icon-container {
+    width: 64px;
+    height: 64px;
+    background: white;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.vehicle-details {
+    flex: 1;
+}
+
+.vehicle-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vehicle-description {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.vehicle-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.fare-display {
+    text-align: right;
+}
+
+.fare-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ea580c;
+    line-height: 1;
+}
+
+/* Trip details styling */
+.trip-details-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.trip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.trip-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.location-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.location-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.location-indicator.pickup {
+    background: #10b981;
+}
+
+.location-indicator.destination {
+    background: #ef4444;
+}
+
+.location-info {
+    flex: 1;
+}
+
+.location-label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.location-address {
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.route-line {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0;
+}
+
+.route-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.route-stat {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Fare breakdown styling */
+.fare-breakdown-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.fare-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.fare-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fare-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fare-item.total {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 12px;
+    font-weight: 600;
+}
+
+.fare-item.total .fare-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ea580c;
+}
+
+/* Payment method styling */
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.payment-method {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-method:hover {
+    border-color: #d1d5db;
+}
+
+.payment-method.selected {
+    border-color: #f97316;
+    background: #fff7ed;
+}
+
+.payment-method-info {
+    flex: 1;
+}
+
+.payment-method-name {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.payment-method.selected .payment-method-name {
+    color: #9a3412;
+}
+
+.payment-method-description {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Safety features styling */
+.safety-features {
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.safety-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+}
+
+.safety-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+/* Bottom action area */
+.confirmation-footer {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+    flex-shrink: 0;
+}
+
+.confirm-button {
+    width: 100%;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.confirm-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+}
+
+.confirm-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.confirm-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.payment-info {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Responsive design */
+@media (min-width: 640px) {
+    .confirmation-card {
+        max-width: 600px;
+        margin: 0 auto;
+        border-radius: 24px;
+    }
+
+    .confirmation-content {
+        padding: 24px;
+        gap: 20px;
+    }
+
+    .confirmation-footer {
+        padding: 24px;
+    }
+}
+
+/* Animation classes */
+.slide-up-enter {
+    transform: translateY(100%);
+    opacity: 0;
+}
+
+.slide-up-enter-active {
+    transform: translateY(0);
+    opacity: 1;
+    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-exit {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.slide-up-exit-active {
+    transform: translateY(100%);
+    opacity: 0;
+    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading spinner */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
