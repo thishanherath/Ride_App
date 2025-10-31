@@ -76,8 +76,6 @@ module.exports.createRide = async (req, res) => {
           vehicleType
         );
 
-        ride.otp = "";
-
         const rideWithUser = await rideModel
           .findOne({ _id: ride._id })
           .populate("user");
