@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { SocketDataContext } from '../contexts/SocketContext';
-import { ArrowLeft, MapPin, Clock, Car, CheckCircle, Phone, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Car, CheckCircle, Phone, MessageCircle, RefreshCw } from 'lucide-react';
 import { Card, Button } from './ui';
 import { formatCurrency } from '../utils/currency';
 import './RideSearchProgress.css';
@@ -18,7 +18,8 @@ const RideSearchProgress = ({
   fare,
   onCancel,
   onDriverAccepted,
-  rideId
+  rideId,
+  onRefresh
 }) => {
   const { socket } = useContext(SocketDataContext);
   const [progress, setProgress] = useState(20);
@@ -27,6 +28,7 @@ const RideSearchProgress = ({
   const [driverInfo, setDriverInfo] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Vehicle icons
   const vehicleIcons = {
@@ -142,6 +144,36 @@ const RideSearchProgress = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Handle refresh for booking updates
+  const handleRefresh = async () => {
+    if (isRefreshing || driverInfo) return;
+    
+    setIsRefreshing(true);
+    console.log('🔄 Refreshing ride status...');
+    
+    try {
+      // Call the refresh callback if provided
+      if (onRefresh) {
+        await onRefresh(rideId);
+      }
+      
+      // Reset search animation to show activity
+      setProgress(30);
+      setTimeout(() => {
+        if (isSearching) {
+          animateProgress(50);
+        }
+      }, 200);
+      
+    } catch (error) {
+      console.error('❌ Refresh failed:', error);
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
+  };
+
   return (
     <div className="ride-search-progress">
       <Card className="bg-white rounded-t-3xl shadow-2xl border-0 overflow-hidden">
@@ -156,7 +188,22 @@ const RideSearchProgress = ({
           <h1 className="text-lg font-semibold text-gray-900">
             {driverInfo ? 'Driver Found!' : isSearching ? 'Finding your driver' : 'Connecting...'}
           </h1>
-          <div className="w-9 h-9" />
+          
+          {/* Refresh Button */}
+          {isSearching && !driverInfo && (
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`p-2 rounded-full transition-all duration-200 ${
+                isRefreshing 
+                  ? 'bg-orange-100 text-orange-600' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-orange-600'
+              }`}
+              title="Refresh booking status"
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
         </div>
 
         {/* Content */}
@@ -170,7 +217,7 @@ const RideSearchProgress = ({
             </h2>
             <p className="text-gray-600">
               {driverInfo ? 'Your driver is preparing to pick you up' :
-               isSearching ? `Searching for ${formatTime(searchTime)}` :
+               isSearching ? `Searching for ${formatTime(searchTime)}${isRefreshing ? ' • Refreshing...' : ''}` :
                'Please wait while we find the best driver for you'}
             </p>
           </div>
