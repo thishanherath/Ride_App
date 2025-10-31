@@ -43,7 +43,8 @@ const RideSearchProgress = ({
   const steps = [
     { label: 'Ride Booked', completed: true },
     { label: 'Finding Driver', completed: false },
-    { label: 'Driver Assigned', completed: false }
+    { label: 'Driver Assigned', completed: false },
+    { label: 'Driver En Route', completed: false }
   ];
 
   // Animate progress smoothly
@@ -70,16 +71,27 @@ const RideSearchProgress = ({
     requestAnimationFrame(animate);
   };
 
-  // Search timer
+  // Search timer and auto-refresh
   useEffect(() => {
-    if (isSearching) {
+    if (isSearching && !driverInfo) {
       const timer = setInterval(() => {
         setSearchTime(prev => prev + 1);
       }, 1000);
 
-      return () => clearInterval(timer);
+      // Auto-refresh every 10 seconds to check for driver acceptance
+      const autoRefreshTimer = setInterval(() => {
+        if (!isRefreshing) {
+          console.log('🔄 Auto-refreshing ride status...');
+          handleRefresh();
+        }
+      }, 10000);
+
+      return () => {
+        clearInterval(timer);
+        clearInterval(autoRefreshTimer);
+      };
     }
-  }, [isSearching]);
+  }, [isSearching, driverInfo, isRefreshing]);
 
   // Initialize progress
   useEffect(() => {
@@ -102,7 +114,7 @@ const RideSearchProgress = ({
       setIsSearching(false);
       setShowSuccess(true);
       setCurrentStep(2);
-      animateProgress(100);
+      animateProgress(75); // 75% for driver assigned
 
       // Extract driver info
       const driverData = {
@@ -124,8 +136,12 @@ const RideSearchProgress = ({
         onDriverAccepted(driverData);
       }
 
-      // Hide success animation after 3 seconds
-      setTimeout(() => setShowSuccess(false), 3000);
+      // Hide success animation after 3 seconds, then show driver en route
+      setTimeout(() => {
+        setShowSuccess(false);
+        setCurrentStep(3);
+        animateProgress(100); // 100% for driver en route
+      }, 3000);
     };
 
     // Add event listener
@@ -149,21 +165,67 @@ const RideSearchProgress = ({
     if (isRefreshing || driverInfo) return;
     
     setIsRefreshing(true);
-    console.log('🔄 Refreshing ride status...');
+    console.log('🔄 Refreshing ride status for ride ID:', rideId);
     
     try {
       // Call the refresh callback if provided
       if (onRefresh) {
         await onRefresh(rideId);
+      } else {
+        // Default refresh behavior - check ride status via API
+        const token = localStorage.getItem('token');
+        if (token && rideId) {
+          const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/ride/status/${rideId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'token': token
+            }
+          });
+          
+          if (response.ok) {
+            const rideData = await response.json();
+            console.log('📊 Ride status refresh result:', rideData);
+            
+            // Check if driver has been assigned
+            if (rideData.captain && rideData.status === 'confirmed') {
+              console.log('🎉 Driver found via refresh!');
+              
+              // Trigger the same flow as socket event
+              const driverData = {
+                name: rideData.captain ? 
+                  `${rideData.captain.fullname.firstname} ${rideData.captain.fullname.lastname}` : 
+                  'Driver',
+                phone: rideData.captain?.phone || '',
+                vehicle: rideData.captain?.vehicle || {},
+                rating: rideData.captain?.rating || 4.5,
+                estimatedArrival: 5,
+                rideId: rideData._id,
+                captain: rideData.captain
+              };
+
+              setIsSearching(false);
+              setShowSuccess(true);
+              setCurrentStep(2);
+              animateProgress(100);
+              setDriverInfo(driverData);
+
+              if (onDriverAccepted) {
+                onDriverAccepted(driverData);
+              }
+
+              setTimeout(() => setShowSuccess(false), 3000);
+            }
+          }
+        }
       }
       
       // Reset search animation to show activity
-      setProgress(30);
-      setTimeout(() => {
-        if (isSearching) {
+      if (isSearching && !driverInfo) {
+        setProgress(30);
+        setTimeout(() => {
           animateProgress(50);
-        }
-      }, 200);
+        }, 200);
+      }
       
     } catch (error) {
       console.error('❌ Refresh failed:', error);
