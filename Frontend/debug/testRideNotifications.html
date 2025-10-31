@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride Notifications Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .button.danger:hover {
+            background: #dc2626;
+        }
+        .status-display {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            margin: 10px 0;
+        }
+        .notification-preview {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            padding: 16px;
+            max-width: 350px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .notification-preview.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .notification-icon {
+            font-size: 24px;
+        }
+        .notification-title {
+            font-weight: 600;
+            color: #111827;
+        }
+        .driver-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .driver-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .driver-details {
+            flex: 1;
+        }
+        .driver-name {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 2px;
+        }
+        .vehicle-info {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .eta {
+            font-size: 12px;
+            color: #059669;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Mock ride statuses
+        const RideStatus = {
+            BOOKING_CONFIRMED: 'booking_confirmed',
+            DRIVER_ASSIGNED: 'driver_assigned',
+            DRIVER_EN_ROUTE: 'driver_en_route',
+            DRIVER_ARRIVED: 'driver_arrived',
+            RIDE_STARTED: 'ride_started',
+            RIDE_COMPLETED: 'ride_completed'
+        };
+
+        // Mock driver data
+        const mockDriver = {
+            name: 'John Smith',
+            photo: null,
+            rating: 4.8,
+            vehicle: {
+                color: 'Blue',
+                make: 'Toyota',
+                model: 'Camry',
+                licensePlate: 'ABC123'
+            }
+        };
+
+        // Notification component
+        const NotificationPreview = ({ notification, onClose }) => {
+            const [show, setShow] = useState(false);
+
+            useEffect(() => {
+                if (notification) {
+                    setShow(true);
+                    const timer = setTimeout(() => {
+                        setShow(false);
+                        setTimeout(onClose, 300);
+                    }, 4000);
+                    return () => clearTimeout(timer);
+                }
+            }, [notification, onClose]);
+
+            if (!notification) return null;
+
+            return (
+                <div className={`notification-preview ${show ? 'show' : ''}`}>
+                    <div className="notification-header">
+                        <span className="notification-icon">{notification.icon}</span>
+                        <span className="notification-title">{notification.title}</span>
+                    </div>
+                    <p style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px' }}>
+                        {notification.message}
+                    </p>
+                    
+                    {notification.type === 'driver_assigned' && (
+                        <div className="driver-info">
+                            <div className="driver-avatar">
+                                {mockDriver.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div className="driver-details">
+                                <div className="driver-name">{mockDriver.name}</div>
+                                <div className="vehicle-info">
+                                    {mockDriver.vehicle.color} {mockDriver.vehicle.make} {mockDriver.vehicle.model}
+                                </div>
+                                <div className="eta">ETA: 5 minutes</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Main test component
+        const RideNotificationTest = () => {
+            const [currentNotification, setCurrentNotification] = useState(null);
+            const [notificationHistory, setNotificationHistory] = useState([]);
+            const [isSimulating, setIsSimulating] = useState(false);
+
+            const notifications = {
+                [RideStatus.DRIVER_ASSIGNED]: {
+                    type: 'driver_assigned',
+                    title: 'Driver Assigned!',
+                    message: `${mockDriver.name} has accepted your ride`,
+                    icon: '✅'
+                },
+                [RideStatus.DRIVER_EN_ROUTE]: {
+                    type: 'driver_enroute',
+                    title: 'Driver En Route',
+                    message: `${mockDriver.name} is on the way`,
+                    icon: '🚗'
+                },
+                [RideStatus.DRIVER_ARRIVED]: {
+                    type: 'driver_arrived',
+                    title: 'Driver Arrived',
+                    message: `${mockDriver.name} has arrived at pickup location`,
+                    icon: '📍'
+                },
+                [RideStatus.RIDE_STARTED]: {
+                    type: 'ride_started',
+                    title: 'Ride Started',
+                    message: 'Your ride has begun. Enjoy your trip!',
+                    icon: '🎯'
+                },
+                [RideStatus.RIDE_COMPLETED]: {
+                    type: 'ride_completed',
+                    title: 'Ride Completed',
+                    message: 'You have arrived at your destination',
+                    icon: '🏁'
+                }
+            };
+
+            const showNotification = (status) => {
+                const notification = notifications[status];
+                if (notification) {
+                    setCurrentNotification({
+                        ...notification,
+                        id: Date.now(),
+                        timestamp: new Date()
+                    });
+                    
+                    setNotificationHistory(prev => [...prev, {
+                        status,
+                        timestamp: new Date(),
+                        ...notification
+                    }]);
+
+                    // Play sound (if available)
+                    try {
+                        const audio = new Audio();
+                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
+                        audio.volume = 0.3;
+                        audio.play().catch(() => {});
+                    } catch (e) {}
+                }
+            };
+
+            const simulateRideFlow = async () => {
+                setIsSimulating(true);
+                const statuses = [
+                    RideStatus.DRIVER_ASSIGNED,
+                    RideStatus.DRIVER_EN_ROUTE,
+                    RideStatus.DRIVER_ARRIVED,
+                    RideStatus.RIDE_STARTED,
+                    RideStatus.RIDE_COMPLETED
+                ];
+
+                for (let i = 0; i < statuses.length; i++) {
+                    await new Promise(resolve => setTimeout(resolve, i === 0 ? 500 : 3000));
+                    showNotification(statuses[i]);
+                }
+                
+                setIsSimulating(false);
+            };
+
+            const clearHistory = () => {
+                setNotificationHistory([]);
+            };
+
+            const closeNotification = () => {
+                setCurrentNotification(null);
+            };
+
+            return (
+                <div className="container">
+                    <h1>Ride Notification System Test</h1>
+                    <p>Test the real-time notifications that users see when their ride status changes.</p>
+
+                    <div className="demo-section">
+                        <h3>Individual Notifications</h3>
+                        <p>Click any button to see how that notification appears:</p>
+                        
+                        <button 
+                            className="button" 
+                            onClick={() => showNotification(RideStatus.DRIVER_ASSIGNED)}
+                        >
+                            Driver Assigned
+                        </button>
+                        
+                        <button 
+                            className="button" 
+                            onClick={() => showNotification(RideStatus.DRIVER_EN_ROUTE)}
+                        >
+                            Driver En Route
+                        </button>
+                        
+                        <button 
+                            className="button" 
+                            onClick={() => showNotification(RideStatus.DRIVER_ARRIVED)}
+                        >
+                            Driver Arrived
+                        </button>
+                        
+                        <button 
+                            className="button" 
+                            onClick={() => showNotification(RideStatus.RIDE_STARTED)}
+                        >
+                            Ride Started
+                        </button>
+                        
+                        <button 
+                            className="button" 
+                            onClick={() => showNotification(RideStatus.RIDE_COMPLETED)}
+                        >
+                            Ride Completed
+                        </button>
+                    </div>
+
+                    <div className="demo-section">
+                        <h3>Full Ride Simulation</h3>
+                        <p>Simulate a complete ride flow with automatic notifications:</p>
+                        
+                        <button 
+                            className="button" 
+                            onClick={simulateRideFlow}
+                            disabled={isSimulating}
+                        >
+                            {isSimulating ? 'Simulating...' : 'Start Full Simulation'}
+                        </button>
+                    </div>
+
+                    {notificationHistory.length > 0 && (
+                        <div className="demo-section">
+                            <h3>Notification History</h3>
+                            <button className="button danger" onClick={clearHistory}>
+                                Clear History
+                            </button>
+                            
+                            <div className="status-display">
+                                {notificationHistory.map((notification, index) => (
+                                    <div key={index} style={{ marginBottom: '8px', fontSize: '14px' }}>
+                                        <strong>{notification.timestamp.toLocaleTimeString()}:</strong> {notification.title}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="demo-section">
+                        <h3>Integration Notes</h3>
+                        <ul>
+                            <li><strong>Real-time:</strong> Notifications appear automatically when ride status changes</li>
+                            <li><strong>Driver info:</strong> Shows driver photo, name, vehicle details, and ETA</li>
+                            <li><strong>Sound alerts:</strong> Optional sound notifications for important updates</li>
+                            <li><strong>Auto-dismiss:</strong> Notifications automatically disappear after a few seconds</li>
+                            <li><strong>Mobile-friendly:</strong> Responsive design works on all screen sizes</li>
+                        </ul>
+                    </div>
+
+                    <NotificationPreview 
+                        notification={currentNotification} 
+                        onClose={closeNotification}
+                    />
+                </div>
+            );
+        };
+
+        ReactDOM.render(<RideNotificationTest />, document.getElementById('root'));
+    </script>
+</body>
+</html>
