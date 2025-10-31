@@ -27,7 +27,9 @@ import {
   PaymentMethods,
   PaymentHistory,
   Notifications,
-  Messages
+  Messages,
+  RateApp,
+  Support
 } from "./screens/";
 import { logger } from "./utils/logger";
 import { SocketDataContext } from "./contexts/SocketContext";
@@ -185,6 +187,12 @@ function App() {
                   </CaptainProtectedWrapper>
                 }
               />
+
+              {/* Rating Routes */}
+              <Route path="/rate-app" element={<RateApp />} />
+
+              {/* Support Routes */}
+              <Route path="/support" element={<Support />} />
 
               {/* Map Routes */}
               <Route path="/map" element={<MapScreen />} />

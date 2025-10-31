@@ -41,6 +41,12 @@ import Notifications from "./Notifications";
 // Message screens
 import Messages from "./Messages";
 
+// Rating screens
+import RateApp from "./RateApp";
+
+// Support screens
+import Support from "./Support";
+
 export {
   GetStarted,
   UserSignup,
@@ -69,5 +75,7 @@ export {
   PaymentMethods,
   PaymentHistory,
   Notifications,
-  Messages
+  Messages,
+  RateApp,
+  Support
 };

@@ -693,14 +693,41 @@ function UserHomeScreen() {
             className="shadow-lg"
           />
           
-          {/* Live Status Indicator */}
+          {/* Compact Live Status Indicator */}
           <div className="mt-2 flex justify-center">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 text-xs">
-                <div className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-gray-600 font-medium">
-                  {isWatching ? 'Live Tracking' : 'Location Offline'}
+            <div className={`relative overflow-hidden bg-gradient-to-r ${
+              isWatching 
+                ? 'from-green-50 to-emerald-50 border-green-200' 
+                : 'from-gray-50 to-slate-50 border-gray-200'
+            } backdrop-blur-sm rounded-full px-3 py-1 shadow-md border`}>
+              {/* Animated background glow */}
+              {isWatching && (
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 animate-pulse" />
+              )}
+              
+              <div className="relative flex items-center gap-2 text-xs">
+                <div className="relative">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isWatching ? 'bg-green-500' : 'bg-gray-400'
+                  } shadow-sm`} />
+                  {isWatching && (
+                    <div className="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-30" />
+                  )}
+                </div>
+                
+                <span className={`font-medium text-xs ${
+                  isWatching ? 'text-green-700' : 'text-gray-600'
+                }`}>
+                  {isWatching ? 'Live' : 'Offline'}
                 </span>
+                
+                {isWatching && (
+                  <div className="flex items-center gap-0.5 text-green-600">
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" />
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
