@@ -1,6 +1,6 @@
 import React from 'react';
 import { MenuIcon, BellIcon } from 'lucide-react';
-import Avatar from './Avatar';
+import ProfileAvatar from '../ProfileAvatar';
 
 const Header = ({ 
   title = 'QuickRide',
@@ -58,18 +58,12 @@ const Header = ({
           )}
           
           {user && (
-            <button
+            <ProfileAvatar 
+              user={user}
+              size="sm" 
               onClick={onProfileClick}
-              className="focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full"
-              aria-label="Profile"
-            >
-              <Avatar 
-                src={user.avatar} 
-                name={user.name}
-                size="sm" 
-                className="cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all duration-200"
-              />
-            </button>
+              className="hover:ring-2 hover:ring-orange-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
           )}
         </div>
       </div>

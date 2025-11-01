@@ -19,7 +19,7 @@ import {
   PhoneIcon,
   InfoIcon
 } from 'lucide-react';
-import Avatar from './Avatar';
+import ProfileAvatar from '../ProfileAvatar';
 
 const Sidebar = ({ 
   isOpen = false, 
@@ -277,18 +277,17 @@ const Sidebar = ({
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="relative group">
-                  <Avatar 
-                    src={user.avatar} 
-                    name={user.name}
+                  <ProfileAvatar 
+                    user={user}
                     size="lg"
+                    showStatus={true}
                     className="ring-3 ring-white/30 shadow-lg transition-all duration-200 group-hover:ring-white/50"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse" />
                 </div>
               )}
               <div>
                 <h2 className="font-semibold text-lg text-white mb-1">
-                  {user?.name || 'Guest User'}
+                  {user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User'}
                 </h2>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-orange-100 capitalize">

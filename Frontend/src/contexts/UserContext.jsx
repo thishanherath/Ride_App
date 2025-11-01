@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 export const userDataContext = createContext();
 
@@ -16,6 +16,27 @@ const UserContext = ({ children }) => {
         }
       }
   );
+
+  // Update user state when localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const updatedUserData = JSON.parse(localStorage.getItem("userData"));
+      if (updatedUserData?.type === "user" && updatedUserData.data) {
+        setUser(updatedUserData.data);
+      }
+    };
+
+    // Listen for storage changes
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check for updates periodically (for same-tab updates)
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <userDataContext.Provider value={{ user, setUser }}>

@@ -632,11 +632,7 @@ function UserHomeScreen() {
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={closeSidebar}
-        user={{
-          name: user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User',
-          avatar: user?.avatar,
-          rating: user?.rating
-        }}
+        user={user}
         userType="user"
         onNavigate={navigateTo}
         currentPath={currentPath}
@@ -648,10 +644,7 @@ function UserHomeScreen() {
         title="QuickRide"
         showMenu={true}
         showNotifications={true}
-        user={{
-          name: user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User',
-          avatar: user?.avatar
-        }}
+        user={user}
         onMenuClick={openSidebar}
         onNotificationClick={() => navigateTo('/user/notifications')}
         onProfileClick={() => navigateTo('/user/edit-profile')}

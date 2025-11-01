@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Profile Picture Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            margin: 10px;
+        }
+        .avatar-fallback {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Simple Profile Picture Test</h1>
+    
+    <div class="test-section">
+        <h2>Current User Test</h2>
+        <button onclick="testCurrentUser()">Test Current User Profile Picture</button>
+        <div id="currentUserResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Direct URL Test</h2>
+        <input type="text" id="imageUrl" placeholder="Enter profile picture URL" style="width: 400px; padding: 5px;">
+        <button onclick="testDirectUrl()">Test Direct URL</button>
+        <div id="directUrlResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Server Connection Test</h2>
+        <button onclick="testServerConnection()">Test Server Connection</button>
+        <div id="serverResult"></div>
+    </div>
+
+    <script>
+        const serverUrl = 'http://localhost:4000';
+
+        function addResult(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testCurrentUser() {
+            clearResults('currentUserResult');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                addResult('currentUserResult', 'error', '❌ No auth token found');
+                return;
+            }
+
+            try {
+                // Get user profile
+                const response = await fetch(`${serverUrl}/user/profile`, {
+                    headers: { token }
+                });
+
+                if (!response.ok) {
+                    addResult('currentUserResult', 'error', `❌ API Error: ${response.status}`);
+                    return;
+                }
+
+                const data = await response.json();
+                const user = data.user;
+
+                addResult('currentUserResult', 'info', `👤 User: ${user.fullname?.firstname} ${user.fullname?.lastname}`);
+                addResult('currentUserResult', 'info', `📧 Email: ${user.email}`);
+
+                if (user.profilePicture) {
+                    const fullUrl = user.profilePicture.startsWith('http') 
+                        ? user.profilePicture 
+                        : `${serverUrl}${user.profilePicture}`;
+                    
+                    addResult('currentUserResult', 'success', `🖼️ Profile Picture: ${user.profilePicture}`);
+                    addResult('currentUserResult', 'info', `🔗 Full URL: ${fullUrl}`);
+
+                    // Test image loading
+                    const img = document.createElement('img');
+                    img.className = 'avatar';
+                    img.onload = () => {
+                        addResult('currentUserResult', 'success', '✅ Image loaded successfully');
+                    };
+                    img.onerror = () => {
+                        addResult('currentUserResult', 'error', '❌ Image failed to load');
+                        // Show fallback
+                        const fallback = document.createElement('div');
+                        fallback.className = 'avatar-fallback';
+                        fallback.textContent = getInitials(user.fullname?.firstname, user.fullname?.lastname);
+                        document.getElementById('currentUserResult').appendChild(fallback);
+                    };
+                    img.src = fullUrl;
+                    document.getElementById('currentUserResult').appendChild(img);
+
+                } else {
+                    addResult('currentUserResult', 'error', '❌ No profile picture set');
+                    // Show fallback
+                    const fallback = document.createElement('div');
+                    fallback.className = 'avatar-fallback';
+                    fallback.textContent = getInitials(user.fullname?.firstname, user.fullname?.lastname);
+                    document.getElementById('currentUserResult').appendChild(fallback);
+                }
+
+            } catch (error) {
+                addResult('currentUserResult', 'error', `❌ Error: ${error.message}`);
+            }
+        }
+
+        function testDirectUrl() {
+            clearResults('directUrlResult');
+            
+            const url = document.getElementById('imageUrl').value;
+            if (!url) {
+                addResult('directUrlResult', 'error', '❌ Please enter a URL');
+                return;
+            }
+
+            addResult('directUrlResult', 'info', `🔗 Testing URL: ${url}`);
+
+            const img = document.createElement('img');
+            img.className = 'avatar';
+            img.onload = () => {
+                addResult('directUrlResult', 'success', '✅ Image loaded successfully');
+            };
+            img.onerror = () => {
+                addResult('directUrlResult', 'error', '❌ Image failed to load');
+            };
+            img.src = url;
+            document.getElementById('directUrlResult').appendChild(img);
+        }
+
+        async function testServerConnection() {
+            clearResults('serverResult');
+
+            const testUrls = [
+                `${serverUrl}/uploads/`,
+                `${serverUrl}/uploads/profile-pictures/`,
+                `${serverUrl}/user/profile`
+            ];
+
+            for (const url of testUrls) {
+                try {
+                    const response = await fetch(url, { 
+                        method: 'HEAD',
+                        headers: url.includes('/user/profile') ? { token: localStorage.getItem('token') } : {}
+                    });
+                    
+                    const status = response.ok ? '✅' : '❌';
+                    addResult('serverResult', response.ok ? 'success' : 'error', 
+                        `${status} ${url} - Status: ${response.status}`);
+                } catch (error) {
+                    addResult('serverResult', 'error', `❌ ${url} - Error: ${error.message}`);
+                }
+            }
+        }
+
+        function getInitials(firstname, lastname) {
+            const first = firstname ? firstname.charAt(0).toUpperCase() : '';
+            const last = lastname ? lastname.charAt(0).toUpperCase() : '';
+            return first + last || '?';
+        }
+
+        // Auto-populate with a test URL
+        document.getElementById('imageUrl').value = `${serverUrl}/uploads/profile-pictures/`;
+    </script>
+</body>
+</html>
