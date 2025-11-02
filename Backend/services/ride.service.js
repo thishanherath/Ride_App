@@ -110,35 +110,35 @@ module.exports.confirmRide = async ({ rideId, captain }) => {
   }
 
   try {
-    await rideModel.findOneAndUpdate(
-      {
-        _id: rideId,
-      },
-      {
-        status: "accepted",
-        captain: captain._id,
-      }
-    );
-
-    const captainData = await captainModel.findOne({ _id: captain._id });
-
-    captainData.rides.push(rideId);
-
-    await captainData.save();
-
-    const ride = await rideModel
-      .findOne({
-        _id: rideId,
-      })
-      .populate("user")
-      .populate("captain")
-      .select("+otp");
-
+    // Find the ride first
+    const ride = await rideModel.findOne({ _id: rideId });
     if (!ride) {
       throw new Error("Ride not found");
     }
 
-    return ride;
+    // Check if ride is still pending
+    if (ride.status !== "pending") {
+      throw new Error("Ride is no longer available for acceptance");
+    }
+
+    // Update captain assignment
+    ride.captain = captain._id;
+    
+    // Use the new updateStatus method for proper tracking
+    await ride.updateStatus("accepted", "captain", "Driver accepted the ride");
+
+    const captainData = await captainModel.findOne({ _id: captain._id });
+    captainData.rides.push(rideId);
+    await captainData.save();
+
+    // Return the updated ride with populated fields
+    const updatedRide = await rideModel
+      .findOne({ _id: rideId })
+      .populate("user")
+      .populate("captain")
+      .select("+otp");
+
+    return updatedRide;
   } catch (error) {
     console.log(error)
     throw new Error("Error occured while confirming ride.");
@@ -170,14 +170,8 @@ module.exports.startRide = async ({ rideId, otp, captain }) => {
     throw new Error("Invalid OTP");
   }
 
-  await rideModel.findOneAndUpdate(
-    {
-      _id: rideId,
-    },
-    {
-      status: "ongoing",
-    }
-  );
+  // Use the new updateStatus method for proper tracking
+  await ride.updateStatus("ongoing", "captain", "Ride started with OTP verification");
 
   return ride;
 };
@@ -207,16 +201,10 @@ module.exports.startRideWithoutOTP = async ({ rideId, captain }) => {
     throw new Error("Unauthorized: You are not assigned to this ride");
   }
 
-  await rideModel.findOneAndUpdate(
-    {
-      _id: rideId,
-    },
-    {
-      status: "ongoing",
-    }
-  );
+  // Use the new updateStatus method for proper tracking
+  await ride.updateStatus("ongoing", "captain", "Ride started without OTP verification");
 
-  // Return updated ride
+  // Return updated ride with populated fields
   const updatedRide = await rideModel
     .findOne({
       _id: rideId,
@@ -249,14 +237,38 @@ module.exports.endRide = async ({ rideId, captain }) => {
     throw new Error("Ride not ongoing");
   }
 
-  await rideModel.findOneAndUpdate(
-    {
-      _id: rideId,
-    },
-    {
-      status: "completed",
-    }
-  );
+  // Calculate actual duration if startedAt exists
+  if (ride.startedAt) {
+    const actualDuration = Math.floor((new Date() - ride.startedAt) / 1000); // in seconds
+    ride.actualDuration = actualDuration;
+  }
+
+  // Use the new updateStatus method for proper tracking
+  await ride.updateStatus("completed", "captain", "Ride completed by driver");
+
+  return ride;
+};
+
+module.exports.cancelRide = async ({ rideId, cancelledBy, reason }) => {
+  if (!rideId) {
+    throw new Error("Ride id is required");
+  }
+
+  const ride = await rideModel
+    .findOne({ _id: rideId })
+    .populate("user")
+    .populate("captain");
+
+  if (!ride) {
+    throw new Error("Ride not found");
+  }
+
+  if (ride.status === "completed" || ride.status === "cancelled") {
+    throw new Error("Ride cannot be cancelled");
+  }
+
+  // Use the new updateStatus method for proper tracking
+  await ride.updateStatus("cancelled", cancelledBy, reason || "Ride cancelled");
 
   return ride;
 };
