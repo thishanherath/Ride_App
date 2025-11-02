@@ -68,6 +68,7 @@ const RideStatusNotification = ({
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
+      case 'searching':
         return {
           color: 'yellow',
           icon: Clock,
@@ -133,7 +134,7 @@ const RideStatusNotification = ({
   const statusConfig = getStatusConfig(rideStatus);
   const StatusIcon = statusConfig.icon;
 
-  if (rideStatus === 'pending') {
+  if (rideStatus === 'pending' || rideStatus === 'searching') {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
