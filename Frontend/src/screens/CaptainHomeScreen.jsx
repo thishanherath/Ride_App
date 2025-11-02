@@ -17,6 +17,7 @@ import {
   AvailableRides 
 } from "../components/captain";
 import { Header, Avatar, Sidebar } from "../components/layout";
+import ProfileAvatar from "../components/ProfileAvatar";
 import { useNavigation } from "../hooks/useNavigation";
 import Console from "../utils/console";
 import { useAlert } from "../hooks/useAlert";
@@ -558,11 +559,7 @@ function CaptainHomeScreen() {
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={closeSidebar}
-        user={{
-          name: captain?.fullname ? `${captain.fullname.firstname} ${captain.fullname.lastname}` : 'Captain',
-          avatar: captain?.avatar,
-          rating: captain?.rating
-        }}
+        user={captain}
         userType="captain"
         onNavigate={navigateTo}
         currentPath={currentPath}
@@ -573,10 +570,7 @@ function CaptainHomeScreen() {
       <div className="absolute top-0 left-0 right-0 z-10">
         <Header 
           title="Driver Dashboard"
-          user={{
-            name: captain?.fullname ? `${captain.fullname.firstname} ${captain.fullname.lastname}` : 'Driver',
-            avatar: captain?.avatar
-          }}
+          user={captain}
           onMenuClick={openSidebar}
           showNotifications={true}
           onNotificationClick={() => navigateTo('/captain/notifications')}
@@ -589,12 +583,13 @@ function CaptainHomeScreen() {
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 sm:px-6 py-3 sm:py-4 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-              <Avatar 
-                src={captain?.avatar} 
-                name={`${captain?.fullname?.firstname} ${captain?.fullname?.lastname}`}
-                size="md"
-                className="border-2 border-white/20 flex-shrink-0"
-              />
+              <div className="border-2 border-white/20 rounded-full flex-shrink-0">
+                <ProfileAvatar 
+                  user={captain}
+                  size="md"
+                  className="w-10 h-10"
+                />
+              </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl font-semibold truncate">
                   {captain?.fullname?.firstname} {captain?.fullname?.lastname}

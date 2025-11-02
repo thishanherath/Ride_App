@@ -29,6 +29,9 @@ import ForgotPassword from "./ForgotPassword";
 import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
 import AdminCaptains from "./AdminCaptains";
+import AdminRides from "./AdminRides";
+import AdminAnalytics from "./AdminAnalytics";
+import AdminSettings from "./AdminSettings";
 import MapScreen from "./MapScreen";
 
 // Payment screens
@@ -71,6 +74,9 @@ export {
   AdminDashboard,
   AdminUsers,
   AdminCaptains,
+  AdminRides,
+  AdminAnalytics,
+  AdminSettings,
   MapScreen,
   PaymentMethods,
   PaymentHistory,

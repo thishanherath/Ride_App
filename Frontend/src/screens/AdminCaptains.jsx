@@ -37,7 +37,7 @@ function AdminCaptains() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       const response = await axios.get(`${serverUrl}/admin/captains`, {
         headers: { token },
@@ -65,7 +65,7 @@ function AdminCaptains() {
   const handleCaptainStatusToggle = async (captainId, currentStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       const newStatus = currentStatus === "active" ? "inactive" : "active";
       
@@ -85,7 +85,7 @@ function AdminCaptains() {
   const handleVerifyCaptain = async (captainId, isVerified) => {
     try {
       const token = localStorage.getItem("token");
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       await axios.patch(`${serverUrl}/admin/captains/${captainId}/verify`, {
         isVerified: !isVerified,
@@ -104,7 +104,7 @@ function AdminCaptains() {
   const handleViewCaptain = async (captainId) => {
     try {
       const token = localStorage.getItem("token");
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       const response = await axios.get(`${serverUrl}/admin/captains/${captainId}`, {
         headers: { token }

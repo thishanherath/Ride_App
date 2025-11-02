@@ -23,6 +23,9 @@ import {
   AdminDashboard,
   AdminUsers,
   AdminCaptains,
+  AdminRides,
+  AdminAnalytics,
+  AdminSettings,
   MapScreen,
   PaymentMethods,
   PaymentHistory,
@@ -118,6 +121,9 @@ function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/captains" element={<AdminCaptains />} />
+              <Route path="/admin/rides" element={<AdminRides />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
 
               {/* Payment Routes */}
               <Route

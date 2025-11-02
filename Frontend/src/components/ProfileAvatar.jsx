@@ -50,9 +50,11 @@ const ProfileAvatar = ({
       .slice(0, 2) || '?';
   };
 
-  // Get local profile picture from localStorage
-  const getLocalProfilePicture = (userId) => {
-    const profilePictureKey = `profilePicture_${userId}`;
+  // Get local profile picture from localStorage (supports both user and captain)
+  const getLocalProfilePicture = (userId, userType = 'user') => {
+    const profilePictureKey = userType === 'captain' 
+      ? `captainProfilePicture_${userId}` 
+      : `profilePicture_${userId}`;
     const stored = localStorage.getItem(profilePictureKey);
     if (stored) {
       try {
@@ -105,10 +107,12 @@ const ProfileAvatar = ({
       }
       // If no profilePicture but we have a user ID, check local storage
       else if (user._id) {
-        const localImage = getLocalProfilePicture(user._id);
+        // Determine user type based on user object structure
+        const userType = user.vehicle ? 'captain' : 'user';
+        const localImage = getLocalProfilePicture(user._id, userType);
         if (localImage) {
           url = localImage;
-          console.log('ProfileAvatar: Found local profile picture in storage');
+          console.log('ProfileAvatar: Found local profile picture in storage for', userType);
         }
       }
 
@@ -119,19 +123,21 @@ const ProfileAvatar = ({
 
     updateProfilePicture();
 
-    // Listen for profile update events
+    // Listen for profile update events (both user and captain)
     const handleProfileUpdate = (event) => {
-      if (event.detail?.user) {
+      if (event.detail?.user || event.detail?.captain) {
         updateProfilePicture();
       }
     };
 
     window.addEventListener('userProfileUpdated', handleProfileUpdate);
     window.addEventListener('userContextUpdated', handleProfileUpdate);
+    window.addEventListener('captainProfileUpdated', handleProfileUpdate);
 
     return () => {
       window.removeEventListener('userProfileUpdated', handleProfileUpdate);
       window.removeEventListener('userContextUpdated', handleProfileUpdate);
+      window.removeEventListener('captainProfileUpdated', handleProfileUpdate);
     };
   }, [user, user?._lastUpdated, user?.profilePicture]);
 
