@@ -111,22 +111,7 @@ function RideDetails({
         <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col h-full min-h-0">
           {/* Header Section */}
           <div className="mb-2 sm:mb-3 flex-shrink-0">
-            {rideCreated && !confirmedRideData && (
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Finding your driver</h2>
-                <p className="text-sm text-gray-600 mb-4">We're connecting you with nearby drivers</p>
-                <ProgressBar
-                  progress={60}
-                  color="primary"
-                  size="sm"
-                  animated={true}
-                  className="max-w-xs mx-auto"
-                />
-              </div>
-            )}
+
 
             {confirmedRideData?._id && (
               <div className="text-center mb-6">

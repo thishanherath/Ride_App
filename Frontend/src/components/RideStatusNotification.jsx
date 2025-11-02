@@ -72,6 +72,7 @@ const RideStatusNotification = ({
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
+      case 'searching':
         return {
           color: 'yellow',
           icon: Clock,

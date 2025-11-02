@@ -9,6 +9,7 @@ import {
 } from "../components";
 import ModernRideConfirmation from "../components/ModernRideConfirmation";
 import RideStatusNotification from "../components/RideStatusNotification";
+import RideProcessFlow from "../components/RideProcessFlow";
 
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
@@ -79,6 +80,7 @@ function UserHomeScreen() {
   const [confirmedRideData, setConfirmedRideData] = useState(null);
   const [rideStatus, setRideStatus] = useState('idle'); // 'idle', 'searching', 'accepted', 'ongoing', 'completed', 'cancelled'
   const [driverInfo, setDriverInfo] = useState(null);
+  const [showRideProcess, setShowRideProcess] = useState(false);
 
 
   const rideTimeout = useRef(null);
@@ -301,6 +303,9 @@ function UserHomeScreen() {
       // Set ride status to searching (maps to backend 'pending')
       setRideStatus('searching');
 
+      // Show the full ride process flow
+      setShowRideProcess(true);
+
       // Show success message
       console.log('🎉 Ride created successfully! Looking for drivers...');
 
@@ -359,6 +364,7 @@ function UserHomeScreen() {
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
+      setShowRideProcess(false);
       setDefaults();
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
@@ -497,6 +503,9 @@ function UserHomeScreen() {
       // Update ride status to accepted
       setRideStatus('accepted');
 
+      // Keep showing the ride process flow
+      setShowRideProcess(true);
+
       // Set driver information with enhanced details
       setDriverInfo({
         _id: data.captain._id,
@@ -538,6 +547,11 @@ function UserHomeScreen() {
 
       // Update ride status to cancelled
       setRideStatus('cancelled');
+
+      // Show cancellation for 3 seconds then hide process flow
+      setTimeout(() => {
+        setShowRideProcess(false);
+      }, 3000);
 
       // Reset after showing cancellation status
       setTimeout(() => {
@@ -586,6 +600,9 @@ function UserHomeScreen() {
       // Update ride status to ongoing
       setRideStatus('ongoing');
 
+      // Keep showing the ride process flow
+      setShowRideProcess(true);
+
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
@@ -599,6 +616,11 @@ function UserHomeScreen() {
 
       // Update ride status to completed
       setRideStatus('completed');
+
+      // Show completion for 3 seconds then hide process flow
+      setTimeout(() => {
+        setShowRideProcess(false);
+      }, 3000);
 
       // Reset UI after a delay to show completion status
       setTimeout(() => {
@@ -960,8 +982,8 @@ function UserHomeScreen() {
             setShowSelectVehiclePanel(true);
           }}
         />
-      ) : (
-        /* Original Ride Details Panel for active rides */
+      ) : rideStatus !== 'searching' && (rideCreated || confirmedRideData) ? (
+        /* Original Ride Details Panel for active rides - but NOT during searching */
         <RideDetails
           pickupLocation={pickupLocation}
           destinationLocation={destinationLocation}
@@ -976,10 +998,10 @@ function UserHomeScreen() {
           rideCreated={rideCreated}
           confirmedRideData={confirmedRideData}
         />
-      )}
+      ) : null}
 
-      {/* Ride Status Notification - Shows when ride is in progress */}
-      {(rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
+      {/* Ride Status Notification - Shows when ride is in progress but NOT when full process flow is shown */}
+      {!showRideProcess && (rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
         <div className="absolute top-20 left-4 right-4 z-40">
           <RideStatusNotification
             rideStatus={rideStatus}
@@ -1005,6 +1027,33 @@ function UserHomeScreen() {
             }}
           />
         </div>
+      )}
+
+      {/* Full Screen Ride Process Flow */}
+      {showRideProcess && (
+        <RideProcessFlow
+          rideStatus={rideStatus}
+          rideDetails={{
+            pickup: pickupLocation,
+            destination: destinationLocation,
+            fare: fare[selectedVehicle],
+            vehicle: selectedVehicle
+          }}
+          driverInfo={driverInfo}
+          onCall={(phone) => {
+            window.location.href = `tel:${phone}`;
+          }}
+          onMessage={(driverId) => {
+            if (confirmedRideData?._id) {
+              navigateTo(`/user/chat/${confirmedRideData._id}`);
+            }
+          }}
+          onCancel={() => {
+            if (rideStatus === 'searching') {
+              cancelRide();
+            }
+          }}
+        />
       )}
 
       {/* Location Permission Modal */}
