@@ -9,6 +9,7 @@ import {
 } from "../components";
 import ModernRideConfirmation from "../components/ModernRideConfirmation";
 import RideStatusNotification from "../components/RideStatusNotification";
+import { RideProgressBar } from "../components/ui/ProgressBar";
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
 
@@ -78,6 +79,26 @@ function UserHomeScreen() {
   const [confirmedRideData, setConfirmedRideData] = useState(null);
   const [rideStatus, setRideStatus] = useState('idle'); // 'idle', 'searching', 'accepted', 'ongoing', 'completed', 'cancelled'
   const [driverInfo, setDriverInfo] = useState(null);
+
+  // Map ride status to progress steps
+  const getRideProgressStep = (status) => {
+    switch (status) {
+      case 'idle':
+        return 0; // Booking
+      case 'searching':
+      case 'pending':
+        return 1; // Finding Driver
+      case 'accepted':
+        return 2; // Driver Assigned
+      case 'ongoing':
+        return 3; // Pickup/In Progress
+      case 'completed':
+      case 'cancelled':
+        return 4; // Completed
+      default:
+        return 0;
+    }
+  };
   const rideTimeout = useRef(null);
   
   // Auto-fill pickup location when user location is available
@@ -295,7 +316,7 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
       
-      // Set ride status to searching
+      // Set ride status to searching (maps to backend 'pending')
       setRideStatus('searching');
 
       // Show success message
@@ -665,6 +686,63 @@ function UserHomeScreen() {
       setMessages((prev) => [...prev, { msg, by: "other" }]);
     });
 
+    // Enhanced socket event listeners for ride status updates
+    socket.on("ride-status-changed", (data) => {
+      console.log("Ride status changed:", data);
+      
+      // Map backend status to frontend status
+      const statusMapping = {
+        'pending': 'searching',
+        'accepted': 'accepted', 
+        'ongoing': 'ongoing',
+        'completed': 'completed',
+        'cancelled': 'cancelled'
+      };
+      
+      const frontendStatus = statusMapping[data.status] || data.status;
+      setRideStatus(frontendStatus);
+      
+      // Update driver info if provided
+      if (data.driverInfo) {
+        setDriverInfo(data.driverInfo);
+      }
+    });
+
+    // Connection health check response
+    socket.on("health-check", (data) => {
+      console.log("Health check received:", data);
+      socket.emit("health-check-response", { 
+        status: "ok", 
+        timestamp: new Date(),
+        rideStatus: rideStatus 
+      });
+    });
+
+    // Connection status events
+    socket.on("join-success", (data) => {
+      console.log("Socket connection successful:", data);
+    });
+
+    socket.on("join-error", (data) => {
+      console.error("Socket connection error:", data);
+      // Handle reconnection if needed
+      if (data.reconnection && data.reconnection.shouldRetry) {
+        setTimeout(() => {
+          socket.emit("join", { userId: user._id, userType: "user" });
+        }, data.reconnection.retryDelay);
+      }
+    });
+
+    socket.on("connection-timeout-warning", (data) => {
+      console.warn("Connection timeout warning:", data);
+      // Show user-friendly message about connection issues
+    });
+
+    socket.on("connection-error", (data) => {
+      console.error("Connection error:", data);
+      // Handle connection errors gracefully
+    });
+
     return () => {
       socket.off("receiveMessage");
     };
@@ -910,6 +988,15 @@ function UserHomeScreen() {
       {/* Ride Status Notification - Shows when ride is in progress */}
       {(rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
         <div className="absolute top-20 left-4 right-4 z-40">
+          {/* Ride Progress Bar */}
+          <div className="mb-4">
+            <RideProgressBar
+              currentStep={getRideProgressStep(rideStatus)}
+              steps={['Confirm Booking', 'Finding Driver', 'Driver Assigned', 'Pickup']}
+              className="bg-white rounded-lg p-4 shadow-lg"
+            />
+          </div>
+          
           <RideStatusNotification
             rideStatus={rideStatus}
             captainInfo={driverInfo}
