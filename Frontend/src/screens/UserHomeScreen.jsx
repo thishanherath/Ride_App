@@ -297,7 +297,6 @@ function UserHomeScreen() {
       
       // Set ride status to searching
       setRideStatus('searching');
-      console.log('🔍 DEBUG: Ride status set to searching');
 
       // Show success message
       console.log('🎉 Ride created successfully! Looking for drivers...');
@@ -494,7 +493,6 @@ function UserHomeScreen() {
       
       // Update ride status to accepted
       setRideStatus('accepted');
-      console.log('🔍 DEBUG: Ride status set to accepted');
       
       // Set driver information
       setDriverInfo({
@@ -506,7 +504,6 @@ function UserHomeScreen() {
         location: data.captain.location,
         distanceToPickup: data.distanceToPickup || 5,
       });
-      console.log('🔍 DEBUG: Driver info set:', data.captain.fullname);
       
       // Update captain location for real-time tracking
       if (data.captain.location && data.captain.location.coordinates) {
@@ -723,8 +720,8 @@ function UserHomeScreen() {
         />
       </div>
 
-      {/* Real-Time Location Status - Show when location is available and no active ride */}
-      {location && location.latitude && rideStatus === 'idle' && (
+      {/* Real-Time Location Status - Show when location is available */}
+      {location && location.latitude && (
         <div className="absolute top-20 left-4 right-4 z-30">
           <LocationDisplay 
             location={location}
@@ -776,9 +773,9 @@ function UserHomeScreen() {
 
       {/* Modern Ride Booking Panel with Enhanced Animations */}
       <div className={`absolute bottom-0 left-0 right-0 z-20 transform transition-all duration-700 ease-out ${
-        showFindTripPanel && rideStatus === 'idle' ? 'animate-slide-up-panel' : 'animate-slide-down-panel'
+        showFindTripPanel ? 'animate-slide-up-panel' : 'animate-slide-down-panel'
       }`}>
-        {showFindTripPanel && rideStatus === 'idle' && (
+        {showFindTripPanel && (
           <Card className="bg-white rounded-t-3xl shadow-2xl border-0 p-6">
             {/* Panel Handle with Micro-interaction */}
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 hover:bg-gray-400 transition-colors duration-200 cursor-pointer" />
@@ -866,19 +863,17 @@ function UserHomeScreen() {
       </div>
 
       {/* Select Vehicle Panel */}
-      {rideStatus === 'idle' && (
-        <SelectVehicle
-          selectedVehicle={setSelectedVehicle}
-          showPanel={showSelectVehiclePanel}
-          setShowPanel={setShowSelectVehiclePanel}
-          showPreviousPanel={setShowFindTripPanel}
-          showNextPanel={setShowRideDetailsPanel}
-          fare={fare}
-        />
-      )}
+      <SelectVehicle
+        selectedVehicle={setSelectedVehicle}
+        showPanel={showSelectVehiclePanel}
+        setShowPanel={setShowSelectVehiclePanel}
+        showPreviousPanel={setShowFindTripPanel}
+        showNextPanel={setShowRideDetailsPanel}
+        fare={fare}
+      />
 
       {/* Modern Ride Confirmation Panel */}
-      {!rideCreated && !confirmedRideData && rideStatus === 'idle' ? (
+      {!rideCreated && !confirmedRideData ? (
         <ModernRideConfirmation
           pickupLocation={pickupLocation}
           destinationLocation={destinationLocation}
@@ -912,34 +907,9 @@ function UserHomeScreen() {
         />
       )}
 
-      {/* DEBUG: Show current ride status and test buttons */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-4 right-4 bg-black text-white p-2 rounded text-xs z-50 space-y-2">
-          <div>Status: {rideStatus} | Driver: {driverInfo ? driverInfo.fullname?.firstname : 'None'}</div>
-          <div className="space-x-1">
-            <button onClick={() => setRideStatus('searching')} className="bg-yellow-600 px-1 rounded">Search</button>
-            <button onClick={() => {
-              setRideStatus('accepted');
-              setDriverInfo({
-                _id: 'test123',
-                fullname: { firstname: 'John', lastname: 'Doe' },
-                phone: '+94771234567',
-                vehicle: { type: 'car', plate: 'ABC-1234' },
-                rating: 4.5,
-                location: null,
-                distanceToPickup: 5,
-              });
-            }} className="bg-blue-600 px-1 rounded">Accept</button>
-            <button onClick={() => setRideStatus('ongoing')} className="bg-green-600 px-1 rounded">Start</button>
-            <button onClick={() => setRideStatus('idle')} className="bg-gray-600 px-1 rounded">Reset</button>
-          </div>
-        </div>
-      )}
-
       {/* Ride Status Notification - Shows when ride is in progress */}
       {(rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
-        <div className="absolute top-24 left-4 right-4 z-50">
-          {console.log('🔍 DEBUG: Showing RideStatusNotification with status:', rideStatus, 'driverInfo:', driverInfo)}
+        <div className="absolute top-20 left-4 right-4 z-40">
           <RideStatusNotification
             rideStatus={rideStatus}
             captainInfo={driverInfo}
