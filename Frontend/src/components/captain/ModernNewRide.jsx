@@ -19,6 +19,7 @@ const ModernNewRide = ({
   showPreviousPanel,
   loading,
   acceptRide,
+  startRide,
   endRide,
   error,
 }) => {
@@ -165,6 +166,14 @@ const ModernNewRide = ({
               Accept Ride
             </Button>
           </div>
+        ) : showBtn === 'start-ride' ? (
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={startRide}
+            loading={loading}
+          >
+            Start Ride
+          </Button>
         ) : (
           <Button
             className="w-full bg-green-600 hover:bg-green-700"

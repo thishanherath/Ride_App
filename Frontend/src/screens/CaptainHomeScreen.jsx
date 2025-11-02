@@ -140,6 +140,23 @@ function CaptainHomeScreen() {
     }
   };
 
+  // Function to start ride manually (called by Start Ride button)
+  const startRide = async () => {
+    try {
+      if (newRide && newRide._id) {
+        setLoading(true);
+        await startRideDirectly(newRide);
+        setShowBtn("end-ride");
+        setLoading(false);
+        console.log('🚗 Ride started manually by captain');
+        showAlert('Ride Started!', 'The ride has been started. Navigate to destination.', 'success');
+      }
+    } catch (error) {
+      setLoading(false);
+      showAlert('Error', 'Failed to start ride', 'failure');
+    }
+  };
+
   const acceptRide = async (rideData = null) => {
     try {
       const rideToAccept = rideData || newRide;
@@ -165,11 +182,19 @@ function CaptainHomeScreen() {
           setNewRide(response.data);
         }
         
-        // Automatically start the ride without OTP verification
-        await startRideDirectly(response.data);
-        
         setLoading(false);
-        setShowBtn("end-ride");
+        
+        // Show "Start Ride" button instead of automatically starting
+        setShowBtn("start-ride");
+        
+        // Optional: Auto-start after a delay to show "Driver Assigned" status
+        setTimeout(async () => {
+          if (newRide && newRide.status === 'accepted') {
+            await startRideDirectly(response.data);
+            setShowBtn("end-ride");
+            console.log('🚗 Ride started automatically after delay');
+          }
+        }, 3000); // 3 second delay to show "Driver Assigned" status
         setMapLocation(
           `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${rideToAccept.destination}&output=embed`
         );
@@ -773,6 +798,7 @@ function CaptainHomeScreen() {
           showPreviousPanel={setShowCaptainDetailsPanel}
           loading={loading}
           acceptRide={() => acceptRide()}
+          startRide={startRide}
           endRide={endRide}
           error={error}
         />

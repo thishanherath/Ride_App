@@ -150,6 +150,26 @@ function initializeSocket(server) {
           lastLocationUpdate: new Date()
         });
 
+        // Find active rides for this captain and notify passengers
+        const activeRides = await rideModel.find({
+          captain: userId,
+          status: { $in: ['accepted', 'ongoing'] }
+        }).populate('user');
+
+        // Notify passengers of captain location update
+        for (const ride of activeRides) {
+          if (ride.user && ride.user.socketId) {
+            io.to(ride.user.socketId).emit("captain-location-update", {
+              rideId: ride._id,
+              captainLocation: {
+                latitude: location.ltd,
+                longitude: location.lng
+              },
+              timestamp: new Date()
+            });
+          }
+        }
+
         socket.emit("location-updated", { 
           message: "Location updated successfully",
           timestamp: new Date()
