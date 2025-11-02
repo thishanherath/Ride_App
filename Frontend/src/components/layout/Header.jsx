@@ -59,6 +59,7 @@ const Header = ({
           
           {user && (
             <ProfileAvatar 
+              key={`header-avatar-${user.profilePicture || user._lastUpdated || user._id || 'default'}`}
               user={user}
               size="sm" 
               onClick={onProfileClick}

@@ -34,6 +34,7 @@ import {
 import { logger } from "./utils/logger";
 import { SocketDataContext } from "./contexts/SocketContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import UserContext from "./contexts/UserContext";
 import { useEffect, useContext } from "react";
 
 import PageTransition from "./components/transitions/PageTransition";
@@ -41,11 +42,11 @@ import PageTransition from "./components/transitions/PageTransition";
 function App() {
   return (
     <ThemeProvider>
-      <div className="w-full min-h-dvh bg-white">
-        <div className="relative w-full min-h-full overflow-y-auto">
+      <UserContext>
+        <div className="w-full min-h-dvh bg-white">
+          <div className="relative w-full min-h-full overflow-y-auto">
 
-
-        <BrowserRouter>
+          <BrowserRouter>
           <LoggingWrapper />
           {/* Temporarily disabled PageTransition to fix navigation issue */}
           <div className="w-full h-full">
@@ -203,6 +204,7 @@ function App() {
         </BrowserRouter>
         </div>
       </div>
+      </UserContext>
     </ThemeProvider>
   );
 }

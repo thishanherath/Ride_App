@@ -13,11 +13,24 @@ import {
   CheckCheck
 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui";
+import { Header } from "../components/layout";
+import { Sidebar } from "../components/layout";
+import { useUser } from "../contexts/UserContext";
+import { useNavigation } from "../hooks/useNavigation";
 import Avatar from "../components/layout/Avatar";
 
 function Messages() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useUser();
+  const { 
+    sidebarOpen, 
+    currentPath, 
+    openSidebar, 
+    closeSidebar, 
+    navigateTo, 
+    handleLogout 
+  } = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   
   // Determine user type from current path
@@ -119,37 +132,42 @@ function Messages() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
-              <p className="text-sm text-gray-500">
-                {conversations.filter(c => !c.lastMessage.read).length} unread conversations
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        user={user}
+        userType={userType}
+        onNavigate={navigateTo}
+        currentPath={currentPath}
+        onLogout={handleLogout}
+      />
 
-        {/* Search Bar */}
-        <div className="px-6 pb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {/* Header */}
+      <Header
+        title="Messages"
+        showMenu={true}
+        showNotifications={true}
+        user={user}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo(`/${userType}/notifications`)}
+        onProfileClick={() => navigateTo(`/${userType}/edit-profile`)}
+      />
+
+      {/* Search Bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
+        <p className="text-sm text-gray-500 mt-2">
+          {conversations.filter(c => !c.lastMessage.read).length} unread conversations
+        </p>
       </div>
 
       <div className="px-6 py-6">

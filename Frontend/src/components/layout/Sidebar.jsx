@@ -278,6 +278,7 @@ const Sidebar = ({
               {user && (
                 <div className="relative group">
                   <ProfileAvatar 
+                    key={`sidebar-avatar-${user.profilePicture || user._lastUpdated || user._id || 'default'}`}
                     user={user}
                     size="lg"
                     showStatus={true}

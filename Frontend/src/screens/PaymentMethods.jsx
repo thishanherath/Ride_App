@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -16,10 +16,27 @@ import {
   DollarSign
 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui";
-import { formatCurrency } from "../utils/currency";
+import { Header } from "../components/layout";
+import { Sidebar } from "../components/layout";
+import { useUser } from "../contexts/UserContext";
+import { useNavigation } from "../hooks/useNavigation";
 
 function PaymentMethods() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useUser();
+  const { 
+    sidebarOpen, 
+    currentPath, 
+    openSidebar, 
+    closeSidebar, 
+    navigateTo, 
+    handleLogout 
+  } = useNavigation();
+  
+  // Determine user type from current path
+  const userType = location.pathname.includes('/captain/') ? 'captain' : 'user';
+  
   const [paymentMethods, setPaymentMethods] = useState([
     {
       id: 1,
@@ -95,6 +112,28 @@ function PaymentMethods() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        user={user}
+        userType={userType}
+        onNavigate={navigateTo}
+        currentPath={currentPath}
+        onLogout={handleLogout}
+      />
+
+      {/* Header */}
+      <Header
+        title="Payment Methods"
+        showMenu={true}
+        showNotifications={true}
+        user={user}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo(`/${userType}/notifications`)}
+        onProfileClick={() => navigateTo(`/${userType}/edit-profile`)}
+      />
+
       {/* Success Message */}
       {showSuccessMessage && (
         <div className="fixed top-4 right-4 z-50">
@@ -110,30 +149,23 @@ function PaymentMethods() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Payment Methods</h1>
-              <p className="text-sm text-gray-500">Manage your cards and wallets</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={() => setShowAddCard(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Method</span>
-          </button>
-        </div>
+      {/* Back Button and Add Method */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+        
+        <button
+          onClick={() => setShowAddCard(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Add Method</span>
+        </button>
       </div>
 
       <div className="px-6 py-6 max-w-2xl mx-auto">

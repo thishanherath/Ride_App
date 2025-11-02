@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -19,11 +19,29 @@ import {
   ArrowDownLeft
 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui";
+import { Header } from "../components/layout";
+import { Sidebar } from "../components/layout";
+import { useUser } from "../contexts/UserContext";
+import { useNavigation } from "../hooks/useNavigation";
 import { formatCurrency } from "../utils/currency";
 import { StatusBadge } from "../components/ui/Badge";
 
 function PaymentHistory() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useUser();
+  const { 
+    sidebarOpen, 
+    currentPath, 
+    openSidebar, 
+    closeSidebar, 
+    navigateTo, 
+    handleLogout 
+  } = useNavigation();
+  
+  // Determine user type from current path
+  const userType = location.pathname.includes('/captain/') ? 'captain' : 'user';
+  
   const [transactions, setTransactions] = useState([
     {
       id: 'txn_001',
@@ -168,65 +186,82 @@ function PaymentHistory() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Payment History</h1>
-              <p className="text-sm text-gray-500">
-                {filteredTransactions.length} transactions
-              </p>
-            </div>
-          </div>
-          
-          <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
-        </div>
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        user={user}
+        userType={userType}
+        onNavigate={navigateTo}
+        currentPath={currentPath}
+        onLogout={handleLogout}
+      />
 
-        {/* Search and Filters */}
-        <div className="px-6 pb-4 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-            </select>
-            
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">All Types</option>
-              <option value="payment">Payments</option>
-              <option value="refund">Refunds</option>
-            </select>
-          </div>
+      {/* Header */}
+      <Header
+        title="Payment History"
+        showMenu={true}
+        showNotifications={true}
+        user={user}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo(`/${userType}/notifications`)}
+        onProfileClick={() => navigateTo(`/${userType}/edit-profile`)}
+      />
+
+      {/* Back Button and Export */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+        
+        <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+          <Download className="w-4 h-4" />
+          <span className="hidden sm:inline">Export</span>
+        </button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Search transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
+        
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="all">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+          </select>
+          
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 bg-gray-100 border-0 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="all">All Types</option>
+            <option value="payment">Payments</option>
+            <option value="refund">Refunds</option>
+          </select>
+        </div>
+        
+        <p className="text-sm text-gray-500">
+          {filteredTransactions.length} transactions
+        </p>
       </div>
 
       <div className="px-6 py-6">

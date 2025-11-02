@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -17,9 +17,27 @@ import {
   ExternalLink
 } from "lucide-react";
 import { Card, Button, Input } from "../components/ui";
+import { Header } from "../components/layout";
+import { Sidebar } from "../components/layout";
+import { useUser } from "../contexts/UserContext";
+import { useNavigation } from "../hooks/useNavigation";
 
 function Support() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useUser();
+  const { 
+    sidebarOpen, 
+    currentPath, 
+    openSidebar, 
+    closeSidebar, 
+    navigateTo, 
+    handleLogout 
+  } = useNavigation();
+  
+  // Determine user type from current path
+  const userType = location.pathname.includes('/captain/') ? 'captain' : 'user';
+  
   const [selectedCategory, setSelectedCategory] = useState("");
   const [message, setMessage] = useState("");
   const [contactInfo, setContactInfo] = useState({
@@ -140,22 +158,37 @@ function Support() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen}
+        onClose={closeSidebar}
+        user={user}
+        userType={userType}
+        onNavigate={navigateTo}
+        currentPath={currentPath}
+        onLogout={handleLogout}
+      />
+
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Contact Support</h1>
-              <p className="text-sm text-gray-500">We're here to help you</p>
-            </div>
-          </div>
-        </div>
+      <Header
+        title="Contact Support"
+        showMenu={true}
+        showNotifications={true}
+        user={user}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo(`/${userType}/notifications`)}
+        onProfileClick={() => navigateTo(`/${userType}/edit-profile`)}
+      />
+
+      {/* Back Button */}
+      <div className="bg-white border-b border-gray-100 px-4 py-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
       </div>
 
       <div className="px-6 py-6 max-w-4xl mx-auto">

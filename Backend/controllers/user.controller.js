@@ -170,17 +170,26 @@ module.exports.updateUserProfile = asyncHandler(async (req, res) => {
 });
 
 module.exports.uploadProfilePicture = asyncHandler(async (req, res) => {
+  console.log('🔄 uploadProfilePicture called');
+  console.log('📁 req.file:', req.file);
+  console.log('👤 req.user:', req.user);
+  
   if (!req.file) {
+    console.log('❌ No file uploaded');
     return res.status(400).json({ message: "No file uploaded" });
   }
 
   const profilePictureUrl = `/uploads/profile-pictures/${req.file.filename}`;
+  console.log('🔗 Generated profilePictureUrl:', profilePictureUrl);
   
   const updatedUser = await userModel.findOneAndUpdate(
     { _id: req.user._id },
     { profilePicture: profilePictureUrl },
     { new: true }
   );
+
+  console.log('✅ Updated user in database:', updatedUser);
+  console.log('📸 Updated user profilePicture:', updatedUser.profilePicture);
 
   res.status(200).json({
     message: "Profile picture uploaded successfully",

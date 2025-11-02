@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserIcon } from 'lucide-react';
 
 /**
@@ -50,36 +50,90 @@ const ProfileAvatar = ({
       .slice(0, 2) || '?';
   };
 
-  // Construct profile picture URL
-  useEffect(() => {
-    if (!user) {
-      setProfilePictureUrl(null);
-      return;
-    }
-
-    let url = null;
-
-    // Check for avatar field first (mapped)
-    if (user.avatar) {
-      url = user.avatar;
-    }
-    // Check for profilePicture field
-    else if (user.profilePicture) {
-      // If it's already a full URL, use as is
-      if (user.profilePicture.startsWith('http')) {
-        url = user.profilePicture;
-      } else {
-        // Construct full URL
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
-        url = `${serverUrl}${user.profilePicture}`;
+  // Get local profile picture from localStorage
+  const getLocalProfilePicture = (userId) => {
+    const profilePictureKey = `profilePicture_${userId}`;
+    const stored = localStorage.getItem(profilePictureKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed.data; // Return the base64 data URL
+      } catch (error) {
+        console.error('Error parsing stored profile picture:', error);
+        return null;
       }
     }
+    return null;
+  };
 
-    console.log('ProfileAvatar: Setting URL', { user, url });
-    setProfilePictureUrl(url);
-    setImageError(false);
-    setImageLoading(true);
-  }, [user]);
+  // Construct profile picture URL
+  useEffect(() => {
+    const updateProfilePicture = () => {
+      if (!user) {
+        setProfilePictureUrl(null);
+        return;
+      }
+
+      let url = null;
+
+      // Check for avatar field first (mapped)
+      if (user.avatar) {
+        url = user.avatar;
+      }
+      // Check for profilePicture field
+      else if (user.profilePicture) {
+        // If it's a data URL (local image), use directly
+        if (user.profilePicture.startsWith('data:')) {
+          url = user.profilePicture;
+          console.log('ProfileAvatar: Using local data URL');
+        }
+        // If it's already a full URL, use as is
+        else if (user.profilePicture.startsWith('http')) {
+          url = user.profilePicture;
+        } 
+        // Otherwise construct full URL from server path
+        else {
+          const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+          url = `${serverUrl}${user.profilePicture}`;
+        }
+        
+        // Add cache busting parameter for server URLs only (not data URLs)
+        if (url && !url.startsWith('data:') && (user._lastUpdated || user._id)) {
+          const timestamp = user._lastUpdated || Date.now();
+          url += `?t=${timestamp}`;
+        }
+      }
+      // If no profilePicture but we have a user ID, check local storage
+      else if (user._id) {
+        const localImage = getLocalProfilePicture(user._id);
+        if (localImage) {
+          url = localImage;
+          console.log('ProfileAvatar: Found local profile picture in storage');
+        }
+      }
+
+      setProfilePictureUrl(url);
+      setImageError(false);
+      setImageLoading(!!url); // Only show loading if we have a URL
+    };
+
+    updateProfilePicture();
+
+    // Listen for profile update events
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.user) {
+        updateProfilePicture();
+      }
+    };
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    window.addEventListener('userContextUpdated', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+      window.removeEventListener('userContextUpdated', handleProfileUpdate);
+    };
+  }, [user, user?._lastUpdated, user?.profilePicture]);
 
   const handleImageLoad = () => {
     setImageLoading(false);
@@ -102,6 +156,7 @@ const ProfileAvatar = ({
         ${className}
       `}
       onClick={onClick}
+      data-profile-avatar="true"
       {...props}
     >
       {/* Avatar Content */}
