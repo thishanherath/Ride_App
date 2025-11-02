@@ -8,6 +8,7 @@ import {
   LocationPermission,
 } from "../components";
 import ModernRideConfirmation from "../components/ModernRideConfirmation";
+import RideStatusNotification from "../components/RideStatusNotification";
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
 
@@ -75,6 +76,8 @@ function UserHomeScreen() {
     bike: 0,
   });
   const [confirmedRideData, setConfirmedRideData] = useState(null);
+  const [rideStatus, setRideStatus] = useState('idle'); // 'idle', 'searching', 'accepted', 'ongoing', 'completed', 'cancelled'
+  const [driverInfo, setDriverInfo] = useState(null);
   const rideTimeout = useRef(null);
   
   // Auto-fill pickup location when user location is available
@@ -291,6 +294,9 @@ function UserHomeScreen() {
       localStorage.setItem("rideDetails", JSON.stringify(rideData));
       setLoading(false);
       setRideCreated(true);
+      
+      // Set ride status to searching
+      setRideStatus('searching');
 
       // Show success message
       console.log('🎉 Ride created successfully! Looking for drivers...');
@@ -373,6 +379,8 @@ function UserHomeScreen() {
     });
     setConfirmedRideData(null);
     setRideCreated(false);
+    setRideStatus('idle');
+    setDriverInfo(null);
   };
 
   // Enhanced location management
@@ -483,6 +491,20 @@ function UserHomeScreen() {
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
       
+      // Update ride status to accepted
+      setRideStatus('accepted');
+      
+      // Set driver information
+      setDriverInfo({
+        _id: data.captain._id,
+        fullname: data.captain.fullname,
+        phone: data.captain.phone,
+        vehicle: data.captain.vehicle,
+        rating: data.captain.rating?.average || 4.5,
+        location: data.captain.location,
+        distanceToPickup: data.distanceToPickup || 5,
+      });
+      
       // Update captain location for real-time tracking
       if (data.captain.location && data.captain.location.coordinates) {
         setCaptainLocation({
@@ -503,22 +525,29 @@ function UserHomeScreen() {
     socket.on("ride-cancelled-by-captain", (data) => {
       Console.log("Ride cancelled by captain", data);
       
-      // Reset to find trip state
-      setShowRideDetailsPanel(false);
-      setShowSelectVehiclePanel(false);
-      setShowFindTripPanel(true);
-      setDefaults();
+      // Update ride status to cancelled
+      setRideStatus('cancelled');
       
-      // Clear stored data
-      localStorage.removeItem("rideDetails");
-      localStorage.removeItem("panelDetails");
+      // Reset after showing cancellation status
+      setTimeout(() => {
+        setRideStatus('idle');
+        setDriverInfo(null);
+        setConfirmedRideData(null);
+        setShowRideDetailsPanel(false);
+        setShowSelectVehiclePanel(false);
+        setShowFindTripPanel(true);
+        setDefaults();
+        
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("panelDetails");
+        
+        // Refresh location
+        updateLocation();
+      }, 3000);
       
       // Show notification
       console.log("❌ Ride cancelled by captain:", data.reason);
-      alert(`Ride cancelled by captain: ${data.reason || 'No reason provided'}`);
-      
-      // Refresh location
-      updateLocation();
     });
 
     socket.on("captain-location-update", (data) => {
@@ -535,6 +564,10 @@ function UserHomeScreen() {
 
     socket.on("ride-started", (data) => {
       Console.log("Ride started");
+      
+      // Update ride status to ongoing
+      setRideStatus('ongoing');
+      
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
@@ -545,18 +578,29 @@ function UserHomeScreen() {
 
     socket.on("ride-ended", (data) => {
       Console.log("Ride Ended");
-      setShowRideDetailsPanel(false);
-      setShowSelectVehiclePanel(false);
-      setShowFindTripPanel(true);
-      setDefaults();
-      localStorage.removeItem("rideDetails");
-      localStorage.removeItem("panelDetails");
-
-      // Show completion notification
-      console.log("✅ Ride completed! Thank you for using our service.");
       
-      // Refresh location after ride ends
-      updateLocation();
+      // Update ride status to completed
+      setRideStatus('completed');
+      
+      // Reset UI after a delay to show completion status
+      setTimeout(() => {
+        setRideStatus('idle');
+        setDriverInfo(null);
+        setConfirmedRideData(null);
+        setShowRideDetailsPanel(false);
+        setShowSelectVehiclePanel(false);
+        setShowFindTripPanel(true);
+        setDefaults();
+        
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("panelDetails");
+        
+        // Refresh location after ride ends
+        updateLocation();
+      }, 3000);
+      
+      console.log("✅ Ride completed successfully!");
     });
   }, [user]);
 
@@ -861,6 +905,35 @@ function UserHomeScreen() {
           rideCreated={rideCreated}
           confirmedRideData={confirmedRideData}
         />
+      )}
+
+      {/* Ride Status Notification - Shows when ride is in progress */}
+      {(rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
+        <div className="absolute top-20 left-4 right-4 z-40">
+          <RideStatusNotification
+            rideStatus={rideStatus}
+            captainInfo={driverInfo}
+            rideDetails={{
+              pickup: pickupLocation,
+              destination: destinationLocation,
+              fare: fare[selectedVehicle],
+              vehicle: selectedVehicle
+            }}
+            onCall={(phone) => {
+              window.location.href = `tel:${phone}`;
+            }}
+            onMessage={(driverId) => {
+              if (confirmedRideData?._id) {
+                navigateTo(`/user/chat/${confirmedRideData._id}`);
+              }
+            }}
+            onCancel={() => {
+              if (rideStatus === 'searching') {
+                cancelRide();
+              }
+            }}
+          />
+        </div>
       )}
 
       {/* Location Permission Modal */}
