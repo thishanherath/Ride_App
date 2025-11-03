@@ -163,14 +163,6 @@ function CaptainHomeScreen() {
       const rideToAccept = rideData || newRide;
       if (rideToAccept && rideToAccept._id) {
         setLoading(true);
-        
-        console.log('🎯 CAPTAIN: Accepting ride (Step 2):', {
-          rideId: rideToAccept._id,
-          pickup: rideToAccept.pickup?.substring(0, 50) + '...',
-          destination: rideToAccept.destination?.substring(0, 50) + '...',
-          fare: rideToAccept.fare
-        });
-
         const response = await axios.post(
           `${import.meta.env.VITE_SERVER_URL}/ride/confirm`,
           { rideId: rideToAccept._id },
@@ -181,88 +173,47 @@ function CaptainHomeScreen() {
           }
         );
         
-        console.log('✅ CAPTAIN: Enhanced Step 2 response received:', {
-          success: response.data.success,
-          step: response.data.step,
-          rideStatus: response.data.ride?.status,
-          statusUpdate: response.data.statusUpdate
-        });
-
         // If accepting from available rides, update the current ride
         if (rideData) {
-          setNewRide(response.data.ride);
+          setNewRide(response.data);
           setShowAvailableRidesPanel(false);
           setShowNewRidePanel(true);
           setShowCaptainDetailsPanel(false);
         } else {
-          setNewRide(response.data.ride);
+          setNewRide(response.data);
         }
         
         setLoading(false);
         
-        // Show "Start Ride" button for Step 3
+        // Show "Start Ride" button instead of automatically starting
         setShowBtn("start-ride");
         
-        // Update map to show route to pickup location
+        // Optional: Auto-start after a delay to show "Driver Assigned" status
+        setTimeout(async () => {
+          if (newRide && newRide.status === 'accepted') {
+            await startRideDirectly(response.data);
+            setShowBtn("end-ride");
+            console.log('🚗 Ride started automatically after delay');
+          }
+        }, 3000); // 3 second delay to show "Driver Assigned" status
         setMapLocation(
-          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${rideToAccept.pickup}&output=embed`
+          `https://www.google.com/maps?q=${riderLocation.ltd},${riderLocation.lng} to ${rideToAccept.destination}&output=embed`
         );
+        Console.log(response);
+        showAlert('Ride Started!', 'You have successfully accepted and started the ride. Navigate to destination.', 'success');
         
-        // Show Step 2 success message
-        const statusMessage = response.data.statusUpdate?.title || 'Ride Accepted!';
-        const statusDescription = response.data.statusUpdate?.description || 'Navigate to pickup location';
-        
-        showAlert(statusMessage, statusDescription, 'success');
-        
-        console.log(`🎉 Step 2 Complete: ${statusMessage} - ${statusDescription}`);
-        
-        // Store enhanced ride details
-        localStorage.setItem("rideDetails", JSON.stringify(response.data.ride));
+        // Store ride details without OTP
+        localStorage.setItem("rideDetails", JSON.stringify(response.data));
         localStorage.setItem("showPanel", JSON.stringify(true));
-        localStorage.setItem("showBtn", JSON.stringify("start-ride"));
-        
-        // Optional: Auto-start after showing Step 2 status (disabled by default)
-        // setTimeout(async () => {
-        //   if (response.data.ride?.status === 'accepted') {
-        //     await startRideDirectly(response.data.ride);
-        //     setShowBtn("end-ride");
-        //     console.log('🚗 Auto-progressed to Step 3: Ride started');
-        //   }
-        // }, 5000); // 5 second delay to show Step 2 status
+        localStorage.setItem("showBtn", JSON.stringify("end-ride"));
       }
     } catch (error) {
       setLoading(false);
-      
-      // Enhanced error handling for Step 2
-      let errorMessage = 'Failed to accept ride';
-      let errorDetails = '';
-      
-      if (error.response?.data) {
-        errorMessage = error.response.data.message || errorMessage;
-        errorDetails = error.response.data.error || '';
-        
-        // Handle specific Step 2 error cases
-        if (error.response.status === 409) {
-          errorMessage = 'Ride Already Taken';
-          errorDetails = 'Another driver accepted this ride first. Better luck next time!';
-        } else if (error.response.status === 404) {
-          errorMessage = 'Ride Not Found';
-          errorDetails = 'This ride may have been cancelled or is no longer available.';
-        }
-      }
-      
-      console.error('❌ CAPTAIN: Step 2 acceptance failed:', {
-        status: error.response?.status,
-        message: errorMessage,
-        details: errorDetails
-      });
-      
-      showAlert(errorMessage, errorDetails, 'failure');
-      
-      // Clear ride data after error
+      showAlert('Error', error.response?.data?.message || 'Failed to accept ride', 'failure');
+      Console.log(error.response);
       setTimeout(() => {
         clearRideData();
-      }, 2000);
+      }, 1000);
     }
   };
 

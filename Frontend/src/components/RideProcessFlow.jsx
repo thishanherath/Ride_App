@@ -242,31 +242,21 @@ const RideProcessFlow = ({
               </Card>
             )}
 
-            {/* Enhanced Driver Information for Step 2 */}
+            {/* Driver Information */}
             {driverInfo && currentStep >= 2 && (
-              <Card className="mb-6 border-2 border-blue-200 bg-blue-50">
+              <Card className="mb-6">
                 <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-blue-900">Your Driver</h3>
-                    {driverInfo.estimatedArrival && (
-                      <div className="bg-blue-100 px-2 py-1 rounded-full">
-                        <span className="text-xs font-medium text-blue-800">
-                          ETA: {driverInfo.estimatedArrival} min
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
+                  <h3 className="font-semibold text-gray-900 mb-3">Your Driver</h3>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-gray-600" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-blue-900">
+                      <h4 className="font-semibold text-gray-900">
                         {driverInfo.fullname?.firstname} {driverInfo.fullname?.lastname}
                       </h4>
-                      <div className="flex items-center gap-2 text-sm text-blue-700">
-                        <span className="capitalize">{driverInfo.vehicle?.type}</span>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span>{driverInfo.vehicle?.type}</span>
                         <span>•</span>
                         <span>{driverInfo.vehicle?.plate}</span>
                         {driverInfo.rating && (
@@ -279,30 +269,8 @@ const RideProcessFlow = ({
                           </>
                         )}
                       </div>
-                      {driverInfo.vehicle?.color && driverInfo.vehicle?.model && (
-                        <div className="text-xs text-blue-600 mt-1">
-                          {driverInfo.vehicle.color} {driverInfo.vehicle.model}
-                        </div>
-                      )}
                     </div>
                   </div>
-
-                  {/* Step 2 Status Indicator */}
-                  {currentStep === 2 && (
-                    <div className="bg-blue-100 border border-blue-200 rounded-lg p-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium text-blue-800">
-                          Driver is on the way to pick you up
-                        </span>
-                      </div>
-                      {driverInfo.estimatedArrival && (
-                        <div className="text-xs text-blue-600 mt-1">
-                          Estimated arrival: {driverInfo.estimatedArrival} minutes
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {/* Driver Actions */}
                   <div className="flex gap-2">
@@ -311,10 +279,10 @@ const RideProcessFlow = ({
                         onClick={() => onCall(driverInfo.phone)}
                         variant="secondary"
                         size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                        className="flex-1"
                         icon={<Phone className="w-4 h-4" />}
                       >
-                        Call Driver
+                        Call
                       </Button>
                     )}
                     {onMessage && (
@@ -322,7 +290,7 @@ const RideProcessFlow = ({
                         onClick={() => onMessage(driverInfo._id)}
                         variant="secondary"
                         size="sm"
-                        className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-200"
+                        className="flex-1"
                         icon={<MessageCircle className="w-4 h-4" />}
                       >
                         Message

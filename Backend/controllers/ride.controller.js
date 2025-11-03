@@ -5,7 +5,6 @@ const { sendMessageToSocketId } = require("../socket");
 const rideModel = require("../models/ride.model");
 const userModel = require("../models/user.model");
 const captainModel = require("../models/captain.model");
-const rideStatusManager = require("../services/rideStatusManager");
 
 module.exports.chatDetails = async (req, res) => {
   const { id } = req.params;
@@ -150,68 +149,108 @@ module.exports.confirmRide = async (req, res) => {
 
   const { rideId } = req.body;
 
-  console.log('🎯 Enhanced ride acceptance request (Step 2):', {
+  console.log('🎯 Ride acceptance request:', {
     rideId,
     captainId: req.captain._id,
     captainName: `${req.captain.fullname.firstname} ${req.captain.fullname.lastname}`
   });
 
   try {
-    // Use RideStatusManager for enhanced step 2 processing
-    const enhancedRideData = await rideStatusManager.handleDriverAcceptance(
-      rideId, 
-      req.captain._id
-    );
+    const rideDetails = await rideModel.findOne({ _id: rideId });
 
-    console.log('🎉 Step 2 completed - Driver assigned successfully:', {
-      rideId: enhancedRideData._id,
-      status: enhancedRideData.status,
-      step: enhancedRideData.statusUpdate.step,
-      driverName: `${enhancedRideData.driverInfo.fullname.firstname} ${enhancedRideData.driverInfo.fullname.lastname}`,
-      estimatedArrival: enhancedRideData.driverInfo.estimatedArrival
+    if (!rideDetails) {
+      console.log('❌ Ride not found:', rideId);
+      return res.status(404).json({ message: "Ride not found." });
+    }
+
+    console.log('📋 Ride details:', {
+      id: rideDetails._id,
+      status: rideDetails.status,
+      vehicle: rideDetails.vehicle,
+      pickup: rideDetails.pickup.substring(0, 50) + '...'
     });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Ride accepted successfully',
-      ride: enhancedRideData,
-      step: 2,
-      statusUpdate: enhancedRideData.statusUpdate
+    switch (rideDetails.status) {
+      case "accepted":
+        console.log('⚠️ Ride already accepted by another captain');
+        return res
+          .status(400)
+          .json({
+            message:
+              "The ride is accepted by another captain before you. Better luck next time.",
+          });
+
+      case "ongoing":
+        console.log('⚠️ Ride is currently ongoing');
+        return res
+          .status(400)
+          .json({
+            message: "The ride is currently ongoing with another captain.",
+          });
+
+      case "completed":
+        console.log('⚠️ Ride already completed');
+        return res
+          .status(400)
+          .json({ message: "The ride has already been completed." });
+
+      case "cancelled":
+        console.log('⚠️ Ride was cancelled');
+        return res
+          .status(400)
+          .json({ message: "The ride has been cancelled." });
+
+      default:
+        break;
+    }
+
+    console.log('✅ Proceeding with ride acceptance...');
+    const ride = await rideService.confirmRide({
+      rideId,
+      captain: req.captain,
     });
 
+    console.log('🎉 Ride accepted successfully:', {
+      rideId: ride._id,
+      status: ride.status,
+      otp: ride.otp
+    });
+
+    // Notify user via socket
+    if (ride.user.socketId) {
+      sendMessageToSocketId(ride.user.socketId, {
+        event: "ride-confirmed",
+        data: ride,
+      });
+      console.log('📡 User notified via socket:', ride.user.socketId);
+    }
+
+    // Remove ride from other captains' available rides
+    try {
+      const allActiveCaptains = await captainModel.find({
+        status: "active",
+        socketId: { $exists: true, $ne: null },
+        _id: { $ne: req.captain._id } // Exclude the captain who accepted
+      });
+
+      console.log(`🗑️ Removing ride from ${allActiveCaptains.length} other captains`);
+      
+      allActiveCaptains.forEach(captain => {
+        sendMessageToSocketId(captain.socketId, {
+          event: "ride-taken",
+          data: { rideId: ride._id, message: "This ride has been taken by another driver" }
+        });
+      });
+      
+      console.log('✅ Ride removal notifications sent to other captains');
+    } catch (error) {
+      console.error('❌ Error notifying other captains:', error.message);
+    }
+
+    return res.status(200).json(ride);
   } catch (err) {
-    console.error('❌ Error in enhanced ride acceptance (Step 2):', err);
-    
-    // Handle specific error cases
-    if (err.message.includes('already accepted') || err.message.includes('already ongoing')) {
-      return res.status(409).json({ 
-        success: false,
-        message: "This ride has already been accepted by another driver. Better luck next time!",
-        error: err.message 
-      });
-    }
-    
-    if (err.message.includes('Ride not found')) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Ride not found.",
-        error: err.message 
-      });
-    }
-    
-    if (err.message.includes('Captain not found')) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Driver profile not found.",
-        error: err.message 
-      });
-    }
-
-    return res.status(500).json({ 
-      success: false,
-      message: "Failed to accept ride. Please try again.",
-      error: err.message 
-    });
+    console.error('❌ Error confirming ride:', err);
+    return res.status(500).json({ message: err.message });
   }
 };
 

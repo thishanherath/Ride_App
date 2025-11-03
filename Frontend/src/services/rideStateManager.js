@@ -87,38 +87,14 @@ class RideStateManager {
     });
   }
 
-  // Handle driver acceptance (Step 2)
-  driverAccepted(enhancedRideData) {
-    console.log('🎯 RideStateManager: Processing driver acceptance (Step 2)', enhancedRideData);
-    
+  // Handle driver acceptance
+  driverAccepted(driverData, rideData) {
     this.updateState({
       status: 'accepted',
-      step: 2,
-      driverData: enhancedRideData.driverInfo,
-      rideData: {
-        ...this.currentState.rideData,
-        ...enhancedRideData,
-        id: enhancedRideData._id,
-        status: enhancedRideData.status
-      },
-      statusUpdate: enhancedRideData.statusUpdate,
-      estimatedArrival: enhancedRideData.driverInfo?.estimatedArrival,
+      driverData,
+      rideData: rideData || this.currentState.rideData,
       error: null
     });
-
-    // Show notification about driver assignment
-    this.showDriverAssignmentNotification(enhancedRideData.driverInfo);
-  }
-
-  // Show driver assignment notification
-  showDriverAssignmentNotification(driverInfo) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Driver Found!', {
-        body: `${driverInfo.fullname.firstname} is on the way to pick you up`,
-        icon: '/driver-icon.png',
-        tag: 'driver-assigned'
-      });
-    }
   }
 
   // Handle ride start
