@@ -423,9 +423,19 @@ function CaptainHomeScreen() {
 
   useEffect(() => {
     if (captain._id) {
+      console.log(`🔌 Captain connecting to socket: ${captain._id}`);
       socket.emit("join", {
         userId: captain._id,
         userType: "captain",
+      });
+
+      // Add connection verification
+      socket.on("join-success", (data) => {
+        console.log("✅ Captain socket connected successfully:", data);
+      });
+
+      socket.on("join-error", (data) => {
+        console.error("❌ Captain socket connection failed:", data);
       });
 
       // Get current location when captain logs in

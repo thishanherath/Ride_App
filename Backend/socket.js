@@ -111,6 +111,9 @@ function initializeSocket(server) {
           connectionStats: socketConnectionManager.getReconnectionStatus(userId)
         });
 
+        // Log successful connection for debugging
+        console.log(`✅ ${userType} ${userId} successfully connected with socket ${socket.id}`);
+
       } catch (error) {
         console.error("Error in join event:", error.message);
         
@@ -426,11 +429,29 @@ const sendMessageToSocketId = (socketId, messageObject, retryCount = 0) => {
   try {
     const socket = io.sockets.sockets.get(socketId);
     if (!socket || !socket.connected) {
-      console.warn(`Socket ${socketId} not found or not connected`);
+      console.warn(`❌ Socket ${socketId} not found or not connected - CLEANING UP DATABASE`);
+      
+      // Clean up stale socket ID from database
+      Promise.resolve().then(async () => {
+        try {
+          await captainModel.updateMany(
+            { socketId: socketId },
+            { $unset: { socketId: 1 }, status: "inactive" }
+          );
+          await userModel.updateMany(
+            { socketId: socketId },
+            { $unset: { socketId: 1 } }
+          );
+          console.log(`🧹 Cleaned up stale socketId ${socketId} from database`);
+        } catch (error) {
+          console.error("Error cleaning up stale socket:", error.message);
+        }
+      });
+      
       return false;
     }
 
-    console.log(`Sending ${messageObject.event} to socket: ${socketId}`);
+    console.log(`✅ Sending ${messageObject.event} to socket: ${socketId}`);
     socket.emit(messageObject.event, {
       ...messageObject.data,
       timestamp: new Date(),

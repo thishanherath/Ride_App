@@ -91,12 +91,18 @@ module.exports.createRide = async (req, res) => {
         let notificationsSent = 0;
         captainsInRadius.map((captain) => {
           if (captain.socketId) {
-            console.log(`📡 Sending new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId})`);
-            sendMessageToSocketId(captain.socketId, {
+            console.log(`📡 Attempting to send new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId})`);
+            const success = sendMessageToSocketId(captain.socketId, {
               event: "new-ride",
               data: rideWithUser,
             });
-            notificationsSent++;
+            
+            if (success) {
+              notificationsSent++;
+              console.log(`✅ Successfully sent to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+            } else {
+              console.log(`❌ Failed to send to ${captain.fullname.firstname} ${captain.fullname.lastname} - socket disconnected`);
+            }
           } else {
             console.log(`❌ Captain ${captain.fullname.firstname} ${captain.fullname.lastname} has no socketId`);
           }
