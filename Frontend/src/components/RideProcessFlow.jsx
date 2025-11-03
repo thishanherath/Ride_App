@@ -37,14 +37,17 @@ const RideProcessFlow = ({
       case 'accepted':
         setCurrentStep(2);
         break;
-      case 'ongoing':
+      case 'driver_arriving':
         setCurrentStep(3);
         break;
-      case 'completed':
+      case 'ongoing':
         setCurrentStep(4);
         break;
+      case 'completed':
+        setCurrentStep(5);
+        break;
       case 'cancelled':
-        setCurrentStep(5); // Show cancelled step
+        setCurrentStep(6); // Show cancelled step
         break;
       default:
         setCurrentStep(1);
@@ -73,11 +76,19 @@ const RideProcessFlow = ({
       title: 'Driver Arriving',
       description: 'Your driver is arriving at pickup location',
       icon: Navigation,
+      color: 'blue',
+      status: 'driver_arriving'
+    },
+    {
+      id: 4,
+      title: 'Ride in Progress',
+      description: 'Enjoy your ride to the destination',
+      icon: Car,
       color: 'green',
       status: 'ongoing'
     },
     {
-      id: 4,
+      id: 5,
       title: 'Ride Complete',
       description: 'Thank you for riding with us!',
       icon: CheckCircle,
@@ -85,7 +96,7 @@ const RideProcessFlow = ({
       status: 'completed'
     },
     {
-      id: 5,
+      id: 6,
       title: 'Ride Cancelled',
       description: 'Your ride has been cancelled',
       icon: XCircle,
@@ -158,8 +169,8 @@ const RideProcessFlow = ({
 
       {/* Progress Steps */}
       <div className="px-4 py-6 bg-gray-50">
-        <div className="flex items-center justify-between max-w-md mx-auto">
-          {steps.map((step, index) => (
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          {steps.filter(step => step.status !== 'cancelled').map((step, index, filteredSteps) => (
             <div key={step.id} className="flex items-center">
               <div className={`
                 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
@@ -174,9 +185,9 @@ const RideProcessFlow = ({
                   step.id
                 )}
               </div>
-              {index < steps.length - 1 && (
+              {index < filteredSteps.length - 1 && (
                 <div className={`
-                  w-12 h-0.5 mx-2
+                  w-8 h-0.5 mx-1
                   ${step.id < currentStep ? 'bg-green-600' : 'bg-gray-200'}
                 `} />
               )}
@@ -256,7 +267,7 @@ const RideProcessFlow = ({
                         {driverInfo.fullname?.firstname} {driverInfo.fullname?.lastname}
                       </h4>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>{driverInfo.vehicle?.type}</span>
+                        <span className="capitalize">{driverInfo.vehicle?.type}</span>
                         <span>•</span>
                         <span>{driverInfo.vehicle?.plate}</span>
                         {driverInfo.rating && (
@@ -269,6 +280,46 @@ const RideProcessFlow = ({
                           </>
                         )}
                       </div>
+                      
+                      {/* Enhanced Real-time ETA Information */}
+                      {driverInfo.estimatedArrival && (
+                        <div className="mt-2 bg-blue-50 rounded-lg p-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-blue-900">Arriving in</span>
+                            <span className="text-lg font-bold text-blue-600">
+                              {driverInfo.estimatedArrival} min
+                            </span>
+                          </div>
+                          
+                          {/* Additional ETA Details */}
+                          <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                            {driverInfo.distance && (
+                              <div>
+                                <span className="font-medium">Distance:</span> {driverInfo.distance.toFixed(1)} km
+                              </div>
+                            )}
+                            {driverInfo.trafficCondition && (
+                              <div>
+                                <span className="font-medium">Traffic:</span> {driverInfo.trafficCondition}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* ETA Confidence Indicator */}
+                          {driverInfo.etaConfidence && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${
+                                driverInfo.etaConfidence === 'high' ? 'bg-green-500' : 
+                                driverInfo.etaConfidence === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}></div>
+                              <span className="text-xs text-blue-600">
+                                {driverInfo.etaConfidence === 'high' ? 'Accurate ETA' : 
+                                 driverInfo.etaConfidence === 'medium' ? 'Estimated ETA' : 'Approximate ETA'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

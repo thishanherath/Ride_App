@@ -54,6 +54,9 @@ function initializeSocket(server) {
 
     // Enhanced join event with validation and error handling
     socket.on("join", async (data) => {
+      let userId = null;
+      let userType = null;
+      
       try {
         const validation = socketEventValidator.validate('join', data);
         if (!validation.valid) {
@@ -63,7 +66,8 @@ function initializeSocket(server) {
           });
         }
 
-        const { userId, userType } = validation.sanitizedData;
+        // Extract userId and userType for use in error handler
+        ({ userId, userType } = validation.sanitizedData);
         console.log(`${userType} joining: ${userId} with socket ${socket.id}`);
 
         // Check if user is already connected with different socket
@@ -87,18 +91,29 @@ function initializeSocket(server) {
         });
         userSockets.set(userId, socket.id);
 
-        // Update database with socket ID
-        if (userType === "user") {
-          await userModel.findByIdAndUpdate(userId, { 
-            socketId: socket.id,
-            lastOnline: new Date()
-          });
-        } else if (userType === "captain") {
-          await captainModel.findByIdAndUpdate(userId, { 
-            socketId: socket.id,
-            lastOnline: new Date(),
-            status: "active" // Set captain to active when they connect
-          });
+        // Update database with socket ID (with timeout and error handling)
+        try {
+          if (userType === "user") {
+            await userModel.findByIdAndUpdate(userId, { 
+              socketId: socket.id,
+              lastOnline: new Date()
+            }, { 
+              timeout: 5000, // 5 second timeout
+              new: true 
+            });
+          } else if (userType === "captain") {
+            await captainModel.findByIdAndUpdate(userId, { 
+              socketId: socket.id,
+              lastOnline: new Date(),
+              status: "active" // Set captain to active when they connect
+            }, { 
+              timeout: 5000, // 5 second timeout
+              new: true 
+            });
+          }
+        } catch (dbError) {
+          console.error(`Database update failed for ${userType} ${userId}:`, dbError.message);
+          // Continue with socket connection even if DB update fails
         }
 
         // Clear any previous reconnection attempts
@@ -117,13 +132,28 @@ function initializeSocket(server) {
       } catch (error) {
         console.error("Error in join event:", error.message);
         
-        // Handle reconnection logic
-        const reconnectionResult = socketConnectionManager.handleReconnection(userId, userType);
-        
-        socket.emit("join-error", { 
-          message: "Failed to join. Please try again.",
-          reconnection: reconnectionResult
-        });
+        // Handle reconnection logic only if we have userId and userType
+        if (userId && userType) {
+          try {
+            const reconnectionResult = socketConnectionManager.handleReconnection(userId, userType);
+            socket.emit("join-error", { 
+              message: "Failed to join. Please try again.",
+              reconnection: reconnectionResult
+            });
+          } catch (reconnectionError) {
+            console.error("Error in reconnection handling:", reconnectionError.message);
+            socket.emit("join-error", { 
+              message: "Failed to join. Please try again.",
+              error: "Connection failed"
+            });
+          }
+        } else {
+          // If we don't have userId/userType, send basic error
+          socket.emit("join-error", { 
+            message: "Failed to join. Invalid connection data.",
+            error: error.message
+          });
+        }
       }
     });
 
@@ -240,20 +270,25 @@ function initializeSocket(server) {
           timestamp: new Date()
         });
 
-        // Save to database
-        const ride = await rideModel.findOne({ _id: rideId });
-        if (!ride) {
-          return socket.emit("message-error", { message: "Ride not found" });
-        }
+        // Save to database (with timeout and error handling)
+        try {
+          const ride = await rideModel.findOne({ _id: rideId }).timeout(5000);
+          if (!ride) {
+            return socket.emit("message-error", { message: "Ride not found" });
+          }
 
-        ride.messages.push({
-          msg: msg,
-          by: userType,
-          time: time,
-          date: date,
-          timestamp: new Date(),
-        });
-        await ride.save();
+          ride.messages.push({
+            msg: msg,
+            by: userType,
+            time: time,
+            date: date,
+            timestamp: new Date(),
+          });
+          await ride.save({ timeout: 5000 });
+        } catch (dbError) {
+          console.error("Error saving message to database:", dbError.message);
+          return socket.emit("message-error", { message: "Failed to save message" });
+        }
 
         socket.emit("message-sent", { 
           message: "Message sent successfully",
@@ -353,20 +388,31 @@ function initializeSocket(server) {
           // Clean up user socket mapping
           userSockets.delete(userId);
           
-          // Update database to remove socket ID
-          if (userType === "user") {
-            await userModel.findByIdAndUpdate(userId, { 
-              socketId: null,
-              lastOnline: new Date(),
-              disconnectReason: reason
-            });
-          } else if (userType === "captain") {
-            await captainModel.findByIdAndUpdate(userId, { 
-              socketId: null,
-              lastOnline: new Date(),
-              disconnectReason: reason,
-              status: "inactive" // Set captain to inactive when they disconnect
-            });
+          // Update database to remove socket ID (with timeout and error handling)
+          try {
+            if (userType === "user") {
+              await userModel.findByIdAndUpdate(userId, { 
+                socketId: null,
+                lastOnline: new Date(),
+                disconnectReason: reason
+              }, { 
+                timeout: 5000, // 5 second timeout
+                new: true 
+              });
+            } else if (userType === "captain") {
+              await captainModel.findByIdAndUpdate(userId, { 
+                socketId: null,
+                lastOnline: new Date(),
+                disconnectReason: reason,
+                status: "inactive" // Set captain to inactive when they disconnect
+              }, { 
+                timeout: 5000, // 5 second timeout
+                new: true 
+              });
+            }
+          } catch (dbError) {
+            console.error(`Database cleanup failed for ${userType} ${userId}:`, dbError.message);
+            // Continue with disconnect cleanup even if DB update fails
           }
         }
         
@@ -431,20 +477,27 @@ const sendMessageToSocketId = (socketId, messageObject, retryCount = 0) => {
     if (!socket || !socket.connected) {
       console.warn(`❌ Socket ${socketId} not found or not connected - CLEANING UP DATABASE`);
       
-      // Clean up stale socket ID from database
+      // Clean up stale socket ID from database (with timeout and error handling)
       Promise.resolve().then(async () => {
         try {
-          await captainModel.updateMany(
-            { socketId: socketId },
-            { $unset: { socketId: 1 }, status: "inactive" }
-          );
-          await userModel.updateMany(
-            { socketId: socketId },
-            { $unset: { socketId: 1 } }
-          );
+          const cleanupPromises = [
+            captainModel.updateMany(
+              { socketId: socketId },
+              { $unset: { socketId: 1 }, status: "inactive" },
+              { timeout: 5000 }
+            ),
+            userModel.updateMany(
+              { socketId: socketId },
+              { $unset: { socketId: 1 } },
+              { timeout: 5000 }
+            )
+          ];
+          
+          await Promise.allSettled(cleanupPromises);
           console.log(`🧹 Cleaned up stale socketId ${socketId} from database`);
         } catch (error) {
           console.error("Error cleaning up stale socket:", error.message);
+          // Don't throw error - this is background cleanup
         }
       });
       

@@ -19,6 +19,7 @@ const mailRoutes = require("./routes/mail.routes");
 const adminRoutes = require("./routes/admin.routes");
 const ratingRoutes = require("./routes/rating.routes");
 const feedbackRoutes = require("./routes/feedback.routes");
+const paymentRoutes = require("./routes/payment.routes");
 const keepServerRunning = require("./services/active.service");
 const dbStream = require("./services/logging.service");
 require("./config/db");
@@ -61,6 +62,7 @@ app.use("/mail", mailRoutes);
 app.use("/admin", adminRoutes);
 app.use("/rating", ratingRoutes);
 app.use("/feedback", feedbackRoutes);
+app.use("/payment", paymentRoutes);
 
 server.listen(PORT, () => {
   console.log("Server is listening on port", PORT);

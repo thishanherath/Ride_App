@@ -1,6 +1,7 @@
 const axios = require("axios");
 const captainModel = require("../models/captain.model");
 const openStreetMapService = require("./openstreetmap.service");
+const geocodingCache = require("./geocodingCache");
 
 /**
  * Rate limiter for API requests (lighter for free services)
@@ -51,17 +52,40 @@ module.exports.getAddressCoordinate = async (address) => {
     throw new Error('Valid address is required');
   }
 
+  const trimmedAddress = address.trim();
+  
+  // Check cache first for instant response
+  const cachedCoordinates = geocodingCache.get(trimmedAddress);
+  if (cachedCoordinates) {
+    console.log(`⚡ Cache HIT for address: ${trimmedAddress.substring(0, 50)}...`);
+    return {
+      ltd: cachedCoordinates.ltd,
+      lng: cachedCoordinates.lng,
+      formatted_address: trimmedAddress,
+      fromCache: true
+    };
+  }
+
+  console.log(`🔍 Cache MISS for address: ${trimmedAddress.substring(0, 50)}...`);
   await rateLimiter.waitForRateLimit();
   
   try {
-    const result = await openStreetMapService.geocodeAddress(address.trim());
+    const result = await openStreetMapService.geocodeAddress(trimmedAddress);
     
     if (result.success) {
-      return {
+      const coordinates = {
         ltd: result.data.latitude,
         lng: result.data.longitude,
         formatted_address: result.data.display_name
       };
+      
+      // Cache the result for future use
+      geocodingCache.set(trimmedAddress, {
+        ltd: coordinates.ltd,
+        lng: coordinates.lng
+      });
+      
+      return coordinates;
     } else {
       throw new Error(result.error || "No results found for the given address");
     }
@@ -138,28 +162,12 @@ module.exports.getAutoCompleteSuggestions = async (input) => {
 
 module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) => {
   // radius in km
+  const startTime = Date.now();
   
   try {
-    console.log(`🔍 Searching for captains near [${ltd}, ${lng}] within ${radius}km for vehicle type: ${vehicleType}`);
+    console.log(`🔍 FAST SEARCH: Captains near [${ltd}, ${lng}] within ${radius}km for ${vehicleType}`);
     
-    // First, let's see all captains regardless of location and vehicle type
-    const allCaptains = await captainModel.find({});
-    console.log(`📊 Total captains in database: ${allCaptains.length}`);
-    
-    // Check captains with the right vehicle type
-    const captainsWithVehicleType = await captainModel.find({
-      "vehicle.type": vehicleType,
-    });
-    console.log(`🚗 Captains with vehicle type '${vehicleType}': ${captainsWithVehicleType.length}`);
-    
-    // Check captains with location data
-    const captainsWithLocation = await captainModel.find({
-      location: { $exists: true },
-      "location.coordinates": { $exists: true, $ne: [] }
-    });
-    console.log(`📍 Captains with location data: ${captainsWithLocation.length}`);
-    
-    // Now find captains in radius with correct vehicle type and active status
+    // OPTIMIZED: Single query with all conditions and lean() for speed
     const captains = await captainModel.find({
       location: {
         $geoWithin: {
@@ -167,20 +175,47 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) =>
         },
       },
       "vehicle.type": vehicleType,
-      status: "active", // Only active captains should receive rides
+      status: "active", // Only active captains
       socketId: { $exists: true, $ne: null } // Only connected captains
-    });
+    })
+    .select('fullname vehicle location socketId status rating') // Only select needed fields
+    .lean() // Use lean() for faster queries (returns plain objects)
+    .limit(20); // Limit results for performance
     
-    console.log(`✅ Found ${captains.length} captains in radius with matching vehicle type`);
+    const queryTime = Date.now() - startTime;
+    console.log(`⚡ FAST SEARCH COMPLETE: Found ${captains.length} captains in ${queryTime}ms`);
     
-    // Log details of found captains
-    captains.forEach(captain => {
-      console.log(`👨‍✈️ Captain: ${captain.fullname.firstname} ${captain.fullname.lastname}, Vehicle: ${captain.vehicle.type}, Location: [${captain.location.coordinates}], SocketId: ${captain.socketId ? 'Connected' : 'Not Connected'}`);
-    });
+    // Performance warning
+    if (queryTime > 500) {
+      console.warn(`⚠️ Slow captain search: ${queryTime}ms (target: <500ms)`);
+    }
+    
+    // Log found captains (only in development)
+    if (process.env.NODE_ENV !== 'production') {
+      captains.forEach(captain => {
+        console.log(`👨‍✈️ ${captain.fullname.firstname} ${captain.fullname.lastname} - ${captain.vehicle.type} - Connected: ${!!captain.socketId}`);
+      });
+    }
+    
+    // If no captains found, provide debugging info
+    if (captains.length === 0) {
+      console.log(`🔍 DEBUG: No captains found. Running diagnostic...`);
+      
+      // Quick diagnostic queries (only run when no captains found)
+      const [totalCaptains, activeCaptains, connectedCaptains, vehicleTypeCaptains] = await Promise.all([
+        captainModel.countDocuments({}),
+        captainModel.countDocuments({ status: "active" }),
+        captainModel.countDocuments({ socketId: { $exists: true, $ne: null } }),
+        captainModel.countDocuments({ "vehicle.type": vehicleType })
+      ]);
+      
+      console.log(`📊 DIAGNOSTIC: Total: ${totalCaptains}, Active: ${activeCaptains}, Connected: ${connectedCaptains}, ${vehicleType}: ${vehicleTypeCaptains}`);
+    }
     
     return captains;
   } catch (error) {
-    console.error("❌ Error in getCaptainsInTheRadius:", error.message);
+    const queryTime = Date.now() - startTime;
+    console.error(`❌ FAST SEARCH FAILED after ${queryTime}ms:`, error.message);
     throw new Error("Error in getting captain in radius: " + error.message);
   }
 };

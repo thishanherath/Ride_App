@@ -56,7 +56,8 @@ function CaptainHomeScreen() {
     rides: availableRides, 
     newRidesCount, 
     markRidesAsViewed,
-    getRideStats 
+    getRideStats,
+    removeRideFromList
   } = useAvailableRides();
 
   const [riderLocation, setRiderLocation] = useState({
@@ -452,12 +453,31 @@ function CaptainHomeScreen() {
       const timestamp = new Date().toLocaleTimeString();
       Console.log(`🚨 REAL-TIME: New Ride received at ${timestamp}:`, data);
       
-      // Visual confirmation this is real-time
-      alert(`🚨 REAL-TIME: New ride available at ${timestamp}!\nFrom: ${data.pickup}\nTo: ${data.destination}`);
+      // OPTIMIZATION: Immediately refresh available rides list
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('new-ride-available', { 
+          detail: { rideId: data._id, timestamp } 
+        }));
+      }, 50); // Very fast refresh
+      
+      // Enhanced visual confirmation
+      const pickupShort = data.pickup.length > 50 ? data.pickup.substring(0, 50) + '...' : data.pickup;
+      alert(`🚨 INSTANT: New ride at ${timestamp}!\nFrom: ${pickupShort}\nFare: ₹${data.fare}`);
       
       setShowBtn("accept");
       setNewRide(data);
       setShowNewRidePanel(true);
+      setShowCaptainDetailsPanel(false);
+      
+      // Browser notification for better visibility
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('New Ride Available!', {
+          body: `${pickupShort} - ₹${data.fare}`,
+          icon: '/logo-quickride.png',
+          tag: 'new-ride',
+          requireInteraction: true
+        });
+      }
     });
 
     socket.on("ride-cancelled", (data) => {
@@ -467,11 +487,25 @@ function CaptainHomeScreen() {
     });
 
     socket.on("ride-taken", (data) => {
-      Console.log("Ride taken by another driver", data);
+      Console.log("🚨 Ride taken by another driver:", data);
+      
       // Hide the current ride if it matches the taken ride
       if (newRide && newRide._id === data.rideId) {
         clearRideData();
         showAlert('Ride Taken', 'This ride has been accepted by another driver', 'info');
+      }
+      
+      // CRITICAL: Remove ride from available rides list in real-time
+      if (data.action === 'remove_from_available_rides') {
+        // Method 1: Direct removal from hook
+        removeRideFromList(data.rideId);
+        
+        // Method 2: Also dispatch event for other components
+        window.dispatchEvent(new CustomEvent('ride-taken', { 
+          detail: { rideId: data.rideId } 
+        }));
+        
+        console.log(`🗑️ Removed ride ${data.rideId} from available rides list`);
       }
     });
   }, [captain]);

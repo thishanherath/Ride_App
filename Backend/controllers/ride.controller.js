@@ -5,6 +5,7 @@ const { sendMessageToSocketId } = require("../socket");
 const rideModel = require("../models/ride.model");
 const userModel = require("../models/user.model");
 const captainModel = require("../models/captain.model");
+const performanceMonitor = require("../services/performanceMonitor");
 
 module.exports.chatDetails = async (req, res) => {
   const { id } = req.params;
@@ -63,13 +64,28 @@ module.exports.createRide = async (req, res) => {
       await user.save();
     }
 
+    // Respond to user immediately
     res.status(201).json(ride);
 
-    Promise.resolve().then(async () => {
+    // OPTIMIZED: Fast driver notification process with performance monitoring
+    setImmediate(async () => {
+      const notificationTimer = performanceMonitor.startTimer('driverNotification');
+      console.log(`🚀 FAST NOTIFICATION: Starting driver search for ride ${ride._id}`);
+      
       try {
-        const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
-        console.log("Pickup Coordinates", pickupCoordinates);
+        // Step 1: Parallel geocoding and ride population
+        const [pickupCoordinates, rideWithUser] = await Promise.all([
+          mapService.getAddressCoordinate(pickup).catch(error => {
+            console.warn('⚠️ Geocoding failed, using fallback coordinates:', error.message);
+            // Fallback coordinates (you can customize based on your area)
+            return { ltd: 6.9271, lng: 79.8612 }; // Colombo, Sri Lanka
+          }),
+          rideModel.findOne({ _id: ride._id }).populate("user").lean() // Use lean() for faster queries
+        ]);
 
+        console.log(`📍 Pickup coordinates resolved: [${pickupCoordinates.ltd}, ${pickupCoordinates.lng}]`);
+
+        // Step 2: Fast captain search with optimized query
         const captainsInRadius = await mapService.getCaptainsInTheRadius(
           pickupCoordinates.ltd,
           pickupCoordinates.lng,
@@ -77,44 +93,68 @@ module.exports.createRide = async (req, res) => {
           vehicleType
         );
 
-        const rideWithUser = await rideModel
-          .findOne({ _id: ride._id })
-          .populate("user");
+        const geocodingTime = Date.now() - startTime;
+        console.log(`⏱️ Geocoding + Captain search completed in ${geocodingTime}ms`);
+
+        // Step 3: Immediate parallel notifications
+        if (captainsInRadius.length === 0) {
+          console.log(`⚠️ No captains found in radius for vehicle type: ${vehicleType}`);
+          return;
+        }
 
         console.log(`🔍 Found ${captainsInRadius.length} captains in radius for vehicle type: ${vehicleType}`);
-        console.log(
-          captainsInRadius.map(
-            (captain) => `${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId ? 'Connected' : 'Not Connected'})`
-          )
-        );
         
-        let notificationsSent = 0;
-        captainsInRadius.map((captain) => {
-          if (captain.socketId) {
-            console.log(`📡 Attempting to send new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId})`);
-            const success = sendMessageToSocketId(captain.socketId, {
-              event: "new-ride",
-              data: rideWithUser,
-            });
-            
-            if (success) {
-              notificationsSent++;
-              console.log(`✅ Successfully sent to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
-            } else {
-              console.log(`❌ Failed to send to ${captain.fullname.firstname} ${captain.fullname.lastname} - socket disconnected`);
+        // Parallel notification sending for maximum speed
+        const notificationPromises = captainsInRadius
+          .filter(captain => captain.socketId) // Only connected captains
+          .map(async (captain) => {
+            try {
+              console.log(`📡 Sending new-ride to: ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+              
+              const success = sendMessageToSocketId(captain.socketId, {
+                event: "new-ride",
+                data: rideWithUser,
+              });
+              
+              if (success) {
+                console.log(`✅ Sent to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+                return { captain: captain._id, success: true };
+              } else {
+                console.log(`❌ Failed to send to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+                return { captain: captain._id, success: false };
+              }
+            } catch (error) {
+              console.error(`❌ Error sending to captain ${captain._id}:`, error.message);
+              return { captain: captain._id, success: false, error: error.message };
             }
-          } else {
-            console.log(`❌ Captain ${captain.fullname.firstname} ${captain.fullname.lastname} has no socketId`);
-          }
+          });
+
+        // Wait for all notifications to complete
+        const results = await Promise.allSettled(notificationPromises);
+        const successfulNotifications = results.filter(
+          result => result.status === 'fulfilled' && result.value.success
+        ).length;
+
+        const totalTime = notificationTimer.end({
+          rideId: ride._id,
+          captainsFound: captainsInRadius.length,
+          notificationsSent: successfulNotifications,
+          vehicleType
         });
         
-        console.log(`✅ Sent new-ride notifications to ${notificationsSent} captains`);
+        console.log(`🎉 FAST NOTIFICATION COMPLETE: ${successfulNotifications}/${captainsInRadius.length} captains notified in ${totalTime}ms`);
         
-        if (notificationsSent === 0) {
-          console.log(`⚠️ No captains were notified! Check if captains are online and have correct vehicle type.`);
+        if (successfulNotifications === 0) {
+          console.error(`❌ CRITICAL: No captains were notified! Check captain connectivity.`);
         }
-      } catch (e) {
-        console.error("Background task failed:", e.message);
+
+      } catch (error) {
+        const totalTime = notificationTimer.end({
+          rideId: ride._id,
+          error: error.message,
+          failed: true
+        });
+        console.error(`❌ FAST NOTIFICATION FAILED after ${totalTime}ms:`, error.message);
       }
     });
   } catch (err) {

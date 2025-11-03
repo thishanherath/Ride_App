@@ -72,13 +72,44 @@ export const useAvailableRides = (refreshInterval = 30000) => {
     }
   }, [rides]);
 
-  // Auto-refresh rides
+  // Remove ride from list when taken by another driver
+  const removeRideFromList = useCallback((rideId) => {
+    setRides(prevRides => {
+      const updatedRides = prevRides.filter(ride => ride._id !== rideId);
+      console.log(`🗑️ [useAvailableRides] Removed ride ${rideId} from list. Remaining: ${updatedRides.length}`);
+      return updatedRides;
+    });
+  }, []);
+
+  // Auto-refresh rides with optimized intervals
   useEffect(() => {
     fetchAvailableRides();
     
-    const interval = setInterval(fetchAvailableRides, refreshInterval);
-    return () => clearInterval(interval);
-  }, [refreshInterval]);
+    // Faster refresh interval for better responsiveness
+    const interval = setInterval(fetchAvailableRides, Math.min(refreshInterval, 15000)); // Max 15 seconds
+    
+    // Listen for ride-taken events to remove rides in real-time
+    const handleRideTaken = (event) => {
+      const { rideId } = event.detail;
+      removeRideFromList(rideId);
+    };
+    
+    // Listen for new ride events to refresh immediately
+    const handleNewRideAvailable = (event) => {
+      console.log('🚨 New ride event received, refreshing available rides...');
+      // Immediate refresh when new ride is available
+      setTimeout(fetchAvailableRides, 100);
+    };
+    
+    window.addEventListener('ride-taken', handleRideTaken);
+    window.addEventListener('new-ride-available', handleNewRideAvailable);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ride-taken', handleRideTaken);
+      window.removeEventListener('new-ride-available', handleNewRideAvailable);
+    };
+  }, [refreshInterval, removeRideFromList, fetchAvailableRides]);
 
   // Request notification permission
   useEffect(() => {
@@ -139,7 +170,8 @@ export const useAvailableRides = (refreshInterval = 30000) => {
     fetchAvailableRides,
     markRidesAsViewed,
     getFilteredRides,
-    getRideStats
+    getRideStats,
+    removeRideFromList
   };
 };
 

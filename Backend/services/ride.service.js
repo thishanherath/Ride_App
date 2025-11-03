@@ -8,57 +8,127 @@ const getFare = async (pickup, destination) => {
     throw new Error("Pickup and destination are required");
   }
 
-  let distanceTime;
   try {
-    distanceTime = await mapService.getDistanceTime(pickup, destination);
+    // Use realistic calculations service
+    const realWorldCalculations = require('./realWorldCalculations');
+    
+    console.log('🧮 Calculating realistic fare for:', {
+      pickup: pickup.substring(0, 50) + '...',
+      destination: destination.substring(0, 50) + '...'
+    });
+
+    // Get realistic fares for all vehicle types
+    const fareData = await realWorldCalculations.calculateAllVehicleFares(pickup, destination);
+    
+    // Get distance and time information
+    let distanceTime;
+    try {
+      distanceTime = await mapService.getDistanceTime(pickup, destination);
+    } catch (error) {
+      console.log("Map service unavailable, using realistic fallback");
+      distanceTime = {
+        distance: { 
+          value: fareData.distance ? fareData.distance * 1000 : 5000,
+          text: fareData.distance ? `${fareData.distance.toFixed(1)} km` : '5.0 km'
+        },
+        duration: { 
+          value: fareData.duration ? fareData.duration * 60 : 900,
+          text: fareData.duration ? `${fareData.duration} min` : '15 min'
+        }
+      };
+    }
+
+    console.log('✅ Realistic fares calculated:', {
+      car: fareData.car,
+      auto: fareData.auto,
+      bike: fareData.bike,
+      distance: distanceTime.distance.text,
+      duration: distanceTime.duration.text
+    });
+
+    return { 
+      fare: fareData, 
+      distanceTime,
+      breakdown: fareData.breakdown,
+      surgeLevel: fareData.surgeLevel
+    };
+
   } catch (error) {
-    // Fallback for testing without Google Maps API
-    console.log("Google Maps API not available, using fallback values");
-    distanceTime = {
-      distance: { value: 5000 }, // 5km in meters
-      duration: { value: 900 }   // 15 minutes in seconds
+    console.error('❌ Realistic fare calculation failed, using fallback:', error.message);
+    
+    // Enhanced fallback calculation
+    let distanceTime;
+    try {
+      distanceTime = await mapService.getDistanceTime(pickup, destination);
+    } catch (mapError) {
+      console.log("Map service also unavailable, using static fallback");
+      distanceTime = {
+        distance: { value: 5000, text: '5.0 km' },
+        duration: { value: 900, text: '15 min' }
+      };
+    }
+
+    // Time-based surge pricing for fallback
+    const now = new Date();
+    const hour = now.getHours();
+    let surgeMultiplier = 1.0;
+    
+    if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
+      surgeMultiplier = 1.3; // Peak hours
+    } else if ((hour >= 22 || hour <= 2) && (now.getDay() === 5 || now.getDay() === 6)) {
+      surgeMultiplier = 1.2; // Weekend nights
+    }
+
+    // Enhanced Sri Lankan Rupee (LKR) pricing with realistic rates
+    const baseFare = {
+      auto: 120,    // Base fare for auto-rickshaw
+      car: 200,     // Base fare for car
+      bike: 80,     // Base fare for motorcycle
+    };
+
+    const perKmRate = {
+      auto: 35,     // Per kilometer rate for auto
+      car: 45,      // Per kilometer rate for car
+      bike: 25,     // Per kilometer rate for motorcycle
+    };
+
+    const perMinuteRate = {
+      auto: 6,      // Per minute rate for auto
+      car: 8,       // Per minute rate for car
+      bike: 5,      // Per minute rate for motorcycle
+    };
+
+    const minimumFare = {
+      auto: 150,
+      car: 200,
+      bike: 120
+    };
+
+    const distanceKm = distanceTime.distance.value / 1000;
+    const durationMin = distanceTime.duration.value / 60;
+
+    const fare = {
+      auto: Math.max(
+        Math.round((baseFare.auto + distanceKm * perKmRate.auto + durationMin * perMinuteRate.auto) * surgeMultiplier),
+        minimumFare.auto
+      ),
+      car: Math.max(
+        Math.round((baseFare.car + distanceKm * perKmRate.car + durationMin * perMinuteRate.car) * surgeMultiplier),
+        minimumFare.car
+      ),
+      bike: Math.max(
+        Math.round((baseFare.bike + distanceKm * perKmRate.bike + durationMin * perMinuteRate.bike) * surgeMultiplier),
+        minimumFare.bike
+      ),
+    };
+
+    return { 
+      fare, 
+      distanceTime,
+      surgeLevel: surgeMultiplier > 1.2 ? 'High Demand' : surgeMultiplier > 1.0 ? 'Slight Increase' : 'Normal',
+      isEstimate: true
     };
   }
-
-  // Sri Lankan Rupee (LKR) pricing structure
-  // Rates are set for the Sri Lankan market
-  const baseFare = {
-    auto: 150,    // Base fare for auto-rickshaw in LKR
-    car: 250,     // Base fare for car in LKR  
-    bike: 100,    // Base fare for motorcycle in LKR
-  };
-
-  const perKmRate = {
-    auto: 50,     // Per kilometer rate for auto in LKR
-    car: 75,      // Per kilometer rate for car in LKR
-    bike: 40,     // Per kilometer rate for motorcycle in LKR
-  };
-
-  const perMinuteRate = {
-    auto: 10,     // Per minute rate for auto in LKR
-    car: 15,      // Per minute rate for car in LKR
-    bike: 7.5,    // Per minute rate for motorcycle in LKR
-  };
-
-  const fare = {
-    auto: Math.round(
-      baseFare.auto +
-        (distanceTime.distance.value / 1000) * perKmRate.auto +
-        (distanceTime.duration.value / 60) * perMinuteRate.auto
-    ),
-    car: Math.round(
-      baseFare.car +
-        (distanceTime.distance.value / 1000) * perKmRate.car +
-        (distanceTime.duration.value / 60) * perMinuteRate.car
-    ),
-    bike: Math.round(
-      baseFare.bike +
-        (distanceTime.distance.value / 1000) * perKmRate.bike +
-        (distanceTime.duration.value / 60) * perMinuteRate.bike
-    ),
-  };
-
-  return { fare, distanceTime };
 };
 
 module.exports.getFare = getFare;

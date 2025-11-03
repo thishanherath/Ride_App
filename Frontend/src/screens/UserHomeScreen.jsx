@@ -10,6 +10,7 @@ import {
 import ModernRideConfirmation from "../components/ModernRideConfirmation";
 import RideStatusNotification from "../components/RideStatusNotification";
 import RideProcessFlow from "../components/RideProcessFlow";
+import PaymentMethodSelector from "../components/PaymentMethodSelector";
 
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
@@ -81,6 +82,11 @@ function UserHomeScreen() {
   const [rideStatus, setRideStatus] = useState('idle'); // 'idle', 'searching', 'accepted', 'ongoing', 'completed', 'cancelled'
   const [driverInfo, setDriverInfo] = useState(null);
   const [showRideProcess, setShowRideProcess] = useState(false);
+  
+  // Payment states
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
 
   const rideTimeout = useRef(null);
@@ -262,11 +268,18 @@ function UserHomeScreen() {
         return;
       }
 
-      console.log('🚀 Creating ride with data:', {
+      // If no payment method selected, show payment selector
+      if (!paymentMethod) {
+        setLoading(false);
+        setShowPaymentSelector(true);
+        return;
+      }
+
+      console.log('🚀 Creating ride with payment method:', {
         pickup: pickupLocation,
         destination: destinationLocation,
         vehicleType: selectedVehicle,
-        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
+        paymentMethod,
         fare: fare[selectedVehicle]
       });
 
@@ -276,7 +289,7 @@ function UserHomeScreen() {
           pickup: pickupLocation,
           destination: destinationLocation,
           vehicleType: selectedVehicle,
-          paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
+          paymentMethod,
         },
         {
           headers: {
@@ -291,7 +304,7 @@ function UserHomeScreen() {
         pickup: pickupLocation,
         destination: destinationLocation,
         vehicleType: selectedVehicle,
-        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
+        paymentMethod,
         fare: fare,
         confirmedRideData: confirmedRideData,
         _id: response.data._id,
@@ -299,6 +312,7 @@ function UserHomeScreen() {
       localStorage.setItem("rideDetails", JSON.stringify(rideData));
       setLoading(false);
       setRideCreated(true);
+      setShowPaymentSelector(false);
 
       // Set ride status to searching (maps to backend 'pending')
       setRideStatus('searching');
@@ -306,15 +320,12 @@ function UserHomeScreen() {
       // Show the full ride process flow
       setShowRideProcess(true);
 
-      // Show success message with timestamp for verification
+      // Show success message with payment info
       const timestamp = new Date().toLocaleTimeString();
-      console.log(`🎉 REAL-TIME TEST: Ride created at ${timestamp} - Looking for drivers...`);
+      console.log(`🎉 RIDE BOOKED: ${timestamp} - Payment: ${paymentMethod.name}`);
 
-      // Add visual indicator that this is real-time
-      alert(`✅ REAL-TIME: Ride booked at ${timestamp}\nCheck backend console for driver notifications!`);
-
-      // Automatically cancel the ride after 5 minutes (300000ms) if no driver accepts
-      const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000; // 5 minutes fallback
+      // Automatically cancel the ride after 5 minutes if no driver accepts
+      const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000;
       rideTimeout.current = setTimeout(() => {
         console.log('🕐 Ride timeout reached, cancelling ride automatically');
         cancelRide();
@@ -328,20 +339,51 @@ function UserHomeScreen() {
       let errorMessage = 'Failed to create ride. Please try again.';
 
       if (error.response) {
-        // Server responded with error status
         console.error('Server error response:', error.response.data);
         errorMessage = error.response.data.message || error.response.data.error || errorMessage;
       } else if (error.request) {
-        // Request was made but no response received
         console.error('Network error:', error.request);
         errorMessage = 'Network error. Please check your connection and try again.';
       } else {
-        // Something else happened
         console.error('Error details:', error.message);
         errorMessage = error.message || errorMessage;
       }
 
       alert(errorMessage);
+    }
+  };
+
+  // Handle payment method selection
+  const handlePaymentSelect = (paymentMethod) => {
+    setSelectedPaymentMethod(paymentMethod);
+    console.log('💳 Payment method selected:', paymentMethod);
+  };
+
+  // Handle payment completion
+  const handlePaymentComplete = (paymentResult) => {
+    console.log('💰 Payment method selected:', paymentResult);
+    
+    if (paymentResult.success) {
+      // For card payments, just store the method and create ride without processing payment
+      if (paymentResult.method === 'card') {
+        createRide({
+          type: 'card',
+          name: 'Card Payment (Pay after ride)',
+          deferred: true, // Mark as deferred payment
+          paymentIntentId: paymentResult.paymentId
+        });
+      } else {
+        // For other methods, process payment immediately
+        createRide({
+          type: paymentResult.method,
+          name: selectedPaymentMethod?.name || 'Payment',
+          paymentId: paymentResult.paymentId,
+          instructions: paymentResult.instructions
+        });
+      }
+    } else {
+      alert('Payment method selection failed: ' + paymentResult.message);
+      setShowPaymentSelector(false);
     }
   };
 
@@ -512,6 +554,7 @@ function UserHomeScreen() {
       setShowRideProcess(true);
 
       // Set driver information with enhanced details
+      // Enhanced driver info with realistic calculations
       setDriverInfo({
         _id: data.captain._id,
         fullname: data.captain.fullname,
@@ -525,6 +568,17 @@ function UserHomeScreen() {
         rating: data.captain.rating?.average || 4.5,
         location: data.captain.location,
         distanceToPickup: data.distanceToPickup || 5,
+        
+        // Enhanced real-world data
+        estimatedArrival: data.estimatedArrival || data.captain.estimatedArrival || 8,
+        distance: data.distanceToPickup || 5,
+        trafficCondition: data.trafficCondition || 'Light Traffic',
+        etaConfidence: data.etaConfidence || 'medium',
+        lastLocationUpdate: new Date(),
+        
+        // Real-time tracking capabilities
+        isTracking: true,
+        routeOptimized: data.routeOptimized || false
       });
 
       // Update captain location for real-time tracking
@@ -1040,6 +1094,40 @@ function UserHomeScreen() {
               }
             }}
           />
+        </div>
+      )}
+
+      {/* Payment Method Selector Modal */}
+      {showPaymentSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Select Payment Method
+                </h2>
+                <button
+                  onClick={() => setShowPaymentSelector(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <PaymentMethodSelector
+              rideDetails={{
+                _id: 'temp-ride-id',
+                pickup: pickupLocation,
+                destination: destinationLocation,
+                fare: fare[selectedVehicle],
+                vehicle: selectedVehicle
+              }}
+              onPaymentSelect={handlePaymentSelect}
+              onPaymentComplete={handlePaymentComplete}
+              className="border-0 shadow-none"
+            />
+          </div>
         </div>
       )}
 

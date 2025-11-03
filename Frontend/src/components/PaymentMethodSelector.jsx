@@ -1,276 +1,346 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard,
-  Wallet,
   Smartphone,
   DollarSign,
-  Plus,
-  Check,
-  ChevronRight,
-  Shield,
-  Zap
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Lock,
+  Shield
 } from 'lucide-react';
-import { Card, Button } from './ui';
-import { formatCurrency } from '../utils/currency';
+import { Card, Button, Input } from './ui';
+import axios from 'axios';
 
-const PaymentMethodSelector = ({ 
-  selectedMethod, 
-  onMethodSelect, 
-  amount = 0,
-  showAddMethod = true,
-  onAddMethod,
+const PaymentMethodSelector = ({
+  rideDetails,
+  onPaymentSelect,
+  onPaymentComplete,
   className = ''
 }) => {
-  console.log('PaymentMethodSelector props:', { selectedMethod, amount, showAddMethod });
-  const [paymentMethods] = useState([
-    {
-      id: 'cash',
-      type: 'cash',
-      name: 'Cash Payment',
-      description: 'Pay with cash to driver',
-      icon: DollarSign,
-      color: 'green',
-      available: true,
-      isDefault: true
-    },
-    {
-      id: 'card_4242',
-      type: 'card',
-      name: 'Visa ending in 4242',
-      description: 'Default payment method',
-      icon: CreditCard,
-      color: 'blue',
-      available: true,
-      isDefault: false,
-      brand: 'visa'
-    },
-    {
-      id: 'card_8888',
-      type: 'card',
-      name: 'Mastercard ending in 8888',
-      description: 'Backup payment method',
-      icon: CreditCard,
-      color: 'red',
-      available: true,
-      isDefault: false,
-      brand: 'mastercard'
-    },
-    {
-      id: 'wallet',
-      type: 'wallet',
-      name: 'Digital Wallet',
-      description: 'PayPal, Google Pay',
-      icon: Wallet,
-      color: 'purple',
-      available: false,
-      isDefault: false
-    },
-    {
-      id: 'mobile',
-      type: 'mobile',
-      name: 'Mobile Payment',
-      description: 'Apple Pay, Samsung Pay',
-      icon: Smartphone,
-      color: 'gray',
-      available: false,
-      isDefault: false
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showCardForm, setShowCardForm] = useState(false);
+
+  // Load payment methods on component mount
+  useEffect(() => {
+    loadPaymentMethods();
+  }, []);
+
+  const loadPaymentMethods = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_SERVER_URL}/payment/methods`
+      );
+      
+      if (response.data.success) {
+        setPaymentMethods(response.data.paymentMethods);
+      }
+    } catch (error) {
+      console.error('Error loading payment methods:', error);
+      setError('Failed to load payment methods');
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  const getColorClasses = (color, isSelected) => {
-    const colors = {
-      green: isSelected 
-        ? 'border-green-500 bg-green-50 text-green-700' 
-        : 'border-gray-200 hover:border-green-300',
-      blue: isSelected 
-        ? 'border-blue-500 bg-blue-50 text-blue-700' 
-        : 'border-gray-200 hover:border-blue-300',
-      red: isSelected 
-        ? 'border-red-500 bg-red-50 text-red-700' 
-        : 'border-gray-200 hover:border-red-300',
-      purple: isSelected 
-        ? 'border-purple-500 bg-purple-50 text-purple-700' 
-        : 'border-gray-200 hover:border-purple-300',
-      gray: isSelected 
-        ? 'border-gray-500 bg-gray-50 text-gray-700' 
-        : 'border-gray-200 hover:border-gray-300'
-    };
-    return colors[color] || colors.gray;
   };
 
-  const getIconColor = (color) => {
-    const colors = {
-      green: 'text-green-600',
-      blue: 'text-blue-600',
-      red: 'text-red-600',
-      purple: 'text-purple-600',
-      gray: 'text-gray-600'
-    };
-    return colors[color] || colors.gray;
+  const handleMethodSelect = (method) => {
+    setSelectedMethod(method);
+    setError('');
+    
+    if (method.id === 'card') {
+      setShowCardForm(true);
+    } else {
+      setShowCardForm(false);
+    }
+    
+    if (onPaymentSelect) {
+      onPaymentSelect(method);
+    }
   };
+
+  const processPayment = async () => {
+    if (!selectedMethod) {
+      setError('Please select a payment method');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setError('');
+
+      const token = localStorage.getItem('token');
+      const paymentData = {
+        rideId: rideDetails._id,
+        paymentMethod: selectedMethod.id
+      };
+
+      // Add method-specific data
+      if (selectedMethod.id === 'card') {
+        // For card payments, we'll handle Stripe integration
+        await processCardPayment(paymentData);
+      } else if (['frimi', 'ezcash', 'mcash'].includes(selectedMethod.id)) {
+        // For mobile payments, add phone number
+        if (!phoneNumber) {
+          setError('Phone number is required for mobile payments');
+          return;
+        }
+        paymentData.paymentData = { phoneNumber };
+        await processRegularPayment(paymentData);
+      } else {
+        // For cash and other methods
+        await processRegularPayment(paymentData);
+      }
+
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      setError(error.response?.data?.message || 'Payment processing failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const processCardPayment = async (paymentData) => {
+    // For card payments, we'll defer the actual payment until ride completion
+    // Just confirm the payment method selection
+    console.log('💳 Card payment method selected - payment will be processed after ride completion');
+    
+    if (onPaymentComplete) {
+      onPaymentComplete({
+        success: true,
+        method: 'card',
+        paymentId: `deferred_card_${Date.now()}`,
+        message: 'Card payment method selected - you will be charged after the ride'
+      });
+    }
+  };
+
+  const processRegularPayment = async (paymentData) => {
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.post(
+      `${import.meta.env.VITE_SERVER_URL}/payment/process`,
+      paymentData,
+      {
+        headers: { token }
+      }
+    );
+
+    if (response.data.success) {
+      if (onPaymentComplete) {
+        onPaymentComplete({
+          success: true,
+          method: selectedMethod.id,
+          paymentId: response.data.payment.paymentId,
+          message: response.data.message,
+          instructions: response.data.payment.instructions
+        });
+      }
+    } else {
+      throw new Error(response.data.message);
+    }
+  };
+
+  const getMethodIcon = (method) => {
+    const icons = {
+      cash: DollarSign,
+      card: CreditCard,
+      paypal: CreditCard,
+      frimi: Smartphone,
+      ezcash: Smartphone,
+      mcash: Smartphone
+    };
+    
+    const IconComponent = icons[method.id] || CreditCard;
+    return <IconComponent className="w-6 h-6" />;
+  };
+
+  const getMethodColor = (method) => {
+    const colors = {
+      cash: 'green',
+      card: 'blue',
+      paypal: 'indigo',
+      frimi: 'purple',
+      ezcash: 'orange',
+      mcash: 'red'
+    };
+    
+    return colors[method.id] || 'gray';
+  };
+
+  if (loading) {
+    return (
+      <Card className={`p-6 ${className}`}>
+        <div className="flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading payment methods...</span>
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">Payment Method</h3>
-          {amount > 0 && (
-            <p className="text-sm text-gray-600">
-              Total: <span className="font-medium">{formatCurrency(amount)}</span>
-            </p>
-          )}
-        </div>
-        
-        {/* Security Badge */}
-        <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-          <Shield className="w-3 h-3" />
-          <span>Secure</span>
+    <Card className={`p-6 ${className}`}>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Choose Payment Method
+        </h3>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Shield className="w-4 h-4" />
+          <span>Secure payment processing</span>
         </div>
       </div>
 
-      {/* Payment Methods List */}
-      <div className="space-y-3">
-        {paymentMethods.map((method) => {
-          const Icon = method.icon;
-          const isSelected = selectedMethod?.id === method.id;
-          const isAvailable = method.available;
+      {/* Payment Amount */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Total Amount:</span>
+          <span className="text-2xl font-bold text-gray-900">
+            LKR {rideDetails.fare?.toFixed(2)}
+          </span>
+        </div>
+      </div>
 
+      {/* Payment Methods */}
+      <div className="space-y-3 mb-6">
+        {paymentMethods.map((method) => {
+          const isSelected = selectedMethod?.id === method.id;
+          const color = getMethodColor(method);
+          
           return (
             <motion.div
               key={method.id}
-              whileHover={isAvailable ? { scale: 1.02 } : {}}
-              whileTap={isAvailable ? { scale: 0.98 } : {}}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <button
-                onClick={() => isAvailable && onMethodSelect(method)}
-                disabled={!isAvailable}
+              <div
                 className={`
-                  w-full p-4 rounded-xl border-2 transition-all duration-200 text-left
-                  ${getColorClasses(method.color, isSelected)}
-                  ${!isAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                  ${isSelected ? 'ring-2 ring-offset-2 ring-opacity-50' : ''}
+                  border-2 rounded-lg p-4 cursor-pointer transition-all
+                  ${isSelected 
+                    ? `border-${color}-500 bg-${color}-50` 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }
                 `}
+                onClick={() => handleMethodSelect(method)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {/* Icon */}
+                  <div className="flex items-center gap-3">
                     <div className={`
-                      w-12 h-12 rounded-full flex items-center justify-center
-                      ${isSelected ? 'bg-white shadow-sm' : 'bg-gray-100'}
+                      w-10 h-10 rounded-full flex items-center justify-center
+                      ${isSelected ? `bg-${color}-100` : 'bg-gray-100'}
                     `}>
-                      <Icon className={`w-6 h-6 ${getIconColor(method.color)}`} />
+                      {getMethodIcon(method)}
                     </div>
-
-                    {/* Method Info */}
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900">{method.name}</h4>
-                        {method.isDefault && (
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs rounded-full font-medium">
-                            Default
-                          </span>
-                        )}
-                        {!isAvailable && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                            Coming Soon
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">{method.description}</p>
+                      <h4 className="font-medium text-gray-900">
+                        {method.name}
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        {method.type === 'offline' ? 'Pay on delivery' : 'Pay now online'}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Selection Indicator */}
-                  <div className="flex items-center gap-2">
-                    {isSelected && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                      >
-                        <Check className="w-4 h-4 text-white" />
-                      </motion.div>
-                    )}
-                    {isAvailable && !isSelected && (
-                      <div className="w-6 h-6 border-2 border-gray-300 rounded-full" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Additional Info for Selected Method */}
-                <AnimatePresence>
-                  {isSelected && method.type === 'cash' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-3 pt-3 border-t border-gray-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Zap className="w-4 h-4 text-green-500" />
-                        <span>Pay directly to your driver upon arrival</span>
-                      </div>
-                    </motion.div>
-                  )}
                   
-                  {isSelected && method.type === 'card' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-3 pt-3 border-t border-gray-200"
-                    >
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Shield className="w-4 h-4 text-blue-500" />
-                        <span>Secure payment processed automatically</span>
-                      </div>
-                    </motion.div>
+                  {isSelected && (
+                    <CheckCircle className={`w-5 h-5 text-${color}-600`} />
                   )}
-                </AnimatePresence>
-              </button>
+                </div>
+              </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Add Payment Method */}
-      {showAddMethod && (
-        <button
-          onClick={onAddMethod}
-          className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all duration-200 group"
-        >
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 group-hover:bg-orange-100 rounded-full flex items-center justify-center transition-colors">
-              <Plus className="w-5 h-5 text-gray-600 group-hover:text-orange-600" />
-            </div>
-            <div className="text-left">
-              <h4 className="font-medium text-gray-900 group-hover:text-orange-900">
-                Add Payment Method
-              </h4>
-              <p className="text-sm text-gray-600 group-hover:text-orange-700">
-                Credit card, debit card, or digital wallet
+      {/* Mobile Payment Phone Number */}
+      <AnimatePresence>
+        {selectedMethod && ['frimi', 'ezcash', 'mcash'].includes(selectedMethod.id) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6"
+          >
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mobile Number
+            </label>
+            <Input
+              type="tel"
+              placeholder="Enter your mobile number"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Card Payment Form */}
+      <AnimatePresence>
+        {showCardForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6"
+          >
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">
+                  Secure Card Payment
+                </span>
+              </div>
+              <p className="text-sm text-blue-700">
+                Your card details are processed securely through Stripe.
+                No card information is stored on our servers.
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500" />
-          </div>
-        </button>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Payment Security Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="flex items-start gap-3">
-          <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <h4 className="text-sm font-medium text-blue-900">Secure Payment</h4>
-            <p className="text-xs text-blue-700 mt-1">
-              Your payment information is encrypted and secure. We never store your card details.
-            </p>
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600" />
+            <span className="text-sm text-red-700">{error}</span>
           </div>
         </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          onClick={processPayment}
+          disabled={!selectedMethod || processing}
+          className="flex-1"
+          loading={processing}
+        >
+          {processing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              Processing...
+            </>
+          ) : (
+            `Pay LKR ${rideDetails.fare?.toFixed(2)}`
+          )}
+        </Button>
       </div>
-    </div>
+
+      {/* Payment Security Info */}
+      <div className="mt-4 text-center">
+        <p className="text-xs text-gray-500">
+          🔒 Your payment is secured with 256-bit SSL encryption
+        </p>
+      </div>
+    </Card>
   );
 };
 

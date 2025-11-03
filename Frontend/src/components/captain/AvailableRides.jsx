@@ -208,9 +208,46 @@ const AvailableRides = ({
 // Individual Ride Card Component
 const RideCard = ({ ride, onAccept, loading }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRideTaken, setIsRideTaken] = useState(false);
+
+  // Listen for ride-taken events for this specific ride
+  useEffect(() => {
+    const handleRideTaken = (event) => {
+      if (event.detail.rideId === ride._id) {
+        setIsRideTaken(true);
+        console.log(`🚫 Ride ${ride._id} marked as taken`);
+      }
+    };
+
+    window.addEventListener('ride-taken', handleRideTaken);
+    return () => window.removeEventListener('ride-taken', handleRideTaken);
+  }, [ride._id]);
+
+  const handleAccept = async () => {
+    if (isAccepting || isRideTaken) return;
+    
+    setIsAccepting(true);
+    try {
+      await onAccept();
+    } catch (error) {
+      console.error('Error accepting ride:', error);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
+    <div className={`p-4 transition-colors relative ${
+      isRideTaken ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50'
+    }`}>
+      {isRideTaken && (
+        <div className="absolute inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center z-10 rounded-lg">
+          <div className="bg-white px-3 py-1 rounded-full shadow-md">
+            <span className="text-sm font-medium text-gray-600">Ride Taken</span>
+          </div>
+        </div>
+      )}
       <div className="flex items-start gap-4">
         {/* User Avatar */}
         <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -302,14 +339,15 @@ const RideCard = ({ ride, onAccept, loading }) => {
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Button
-              onClick={onAccept}
-              disabled={loading}
-              variant="primary"
+              onClick={handleAccept}
+              disabled={loading || isAccepting || isRideTaken}
+              variant={isRideTaken ? "secondary" : "primary"}
               size="sm"
-              className="flex-1"
-              loading={loading}
+              className={`flex-1 ${isRideTaken ? 'opacity-50 cursor-not-allowed' : ''}`}
+              loading={loading || isAccepting}
             >
-              {loading ? 'Accepting...' : 'Accept Ride'}
+              {isRideTaken ? 'Ride Taken' : 
+               (loading || isAccepting) ? 'Accepting...' : 'Accept Ride'}
             </Button>
             <Button
               onClick={() => setIsExpanded(!isExpanded)}
