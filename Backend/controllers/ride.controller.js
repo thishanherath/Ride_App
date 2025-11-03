@@ -110,8 +110,97 @@ module.exports.createRide = async (req, res) => {
         
         console.log(`✅ Sent new-ride notifications to ${notificationsSent} captains`);
         
+        // Enhanced fallback and debugging if no captains were notified
         if (notificationsSent === 0) {
-          console.log(`⚠️ No captains were notified! Check if captains are online and have correct vehicle type.`);
+          console.log(`⚠️ No captains were notified! Implementing fallback strategy...`);
+          
+          // Fallback 1: Try all active captains with matching vehicle type (ignore location)
+          console.log(`🔄 Fallback: Trying all active captains with vehicle type: ${vehicleType}`);
+          
+          const allActiveCaptains = await captainModel.find({
+            "vehicle.type": vehicleType,
+            status: "active",
+            socketId: { $exists: true, $ne: null }
+          });
+          
+          console.log(`🔍 Found ${allActiveCaptains.length} active captains with vehicle type: ${vehicleType}`);
+          
+          let fallbackNotifications = 0;
+          allActiveCaptains.forEach((captain) => {
+            if (captain.socketId) {
+              console.log(`📡 Fallback: Sending new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId})`);
+              const success = sendMessageToSocketId(captain.socketId, {
+                event: "new-ride",
+                data: rideWithUser,
+              });
+              
+              if (success) {
+                fallbackNotifications++;
+                console.log(`✅ Fallback: Successfully sent to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+              }
+            }
+          });
+          
+          console.log(`🔄 Fallback sent notifications to ${fallbackNotifications} captains`);
+          
+          // If still no notifications, provide detailed debugging
+          if (fallbackNotifications === 0) {
+            console.log(`🚨 CRITICAL: Still no captains notified! Debugging captain status:`);
+            
+            // Debug: Check all captains in database
+            const allCaptains = await captainModel.find({});
+            console.log(`📊 Total captains in database: ${allCaptains.length}`);
+            
+            const activeCaptains = await captainModel.find({ status: "active" });
+            console.log(`🟢 Active captains: ${activeCaptains.length}`);
+            
+            const connectedCaptains = await captainModel.find({ 
+              socketId: { $exists: true, $ne: null } 
+            });
+            console.log(`🔌 Connected captains: ${connectedCaptains.length}`);
+            
+            const vehicleTypeCaptains = await captainModel.find({ 
+              "vehicle.type": vehicleType 
+            });
+            console.log(`🚗 Captains with vehicle type '${vehicleType}': ${vehicleTypeCaptains.length}`);
+            
+            // Log details of each captain for debugging
+            console.log(`📋 Captain Details:`);
+            allCaptains.forEach((captain, index) => {
+              console.log(`   ${index + 1}. ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+              console.log(`      - Status: ${captain.status}`);
+              console.log(`      - Vehicle: ${captain.vehicle.type}`);
+              console.log(`      - SocketId: ${captain.socketId || 'None'}`);
+              console.log(`      - Location: ${captain.location ? `[${captain.location.coordinates}]` : 'None'}`);
+              console.log(`      - Last Online: ${captain.lastOnline || 'Never'}`);
+            });
+            
+            // Final fallback: Try to send to ANY connected captain regardless of vehicle type
+            console.log(`🆘 FINAL FALLBACK: Trying ANY connected captain...`);
+            const anyConnectedCaptains = await captainModel.find({
+              socketId: { $exists: true, $ne: null }
+            });
+            
+            console.log(`🔍 Found ${anyConnectedCaptains.length} connected captains (any vehicle type)`);
+            
+            let finalFallbackNotifications = 0;
+            anyConnectedCaptains.forEach((captain) => {
+              if (captain.socketId) {
+                console.log(`📡 Final Fallback: Sending new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (Vehicle: ${captain.vehicle.type})`);
+                const success = sendMessageToSocketId(captain.socketId, {
+                  event: "new-ride",
+                  data: rideWithUser,
+                });
+                
+                if (success) {
+                  finalFallbackNotifications++;
+                  console.log(`✅ Final Fallback: Successfully sent to ${captain.fullname.firstname} ${captain.fullname.lastname}`);
+                }
+              }
+            });
+            
+            console.log(`🆘 Final fallback sent notifications to ${finalFallbackNotifications} captains`);
+          }
         }
       } catch (e) {
         console.error("Background task failed:", e.message);
@@ -549,6 +638,105 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
+
+// Debug endpoint to check captain status and ride notifications
+module.exports.debugCaptainStatus = async (req, res) => {
+  try {
+    const captain = req.captain;
+    
+    // Get all captains for comparison
+    const allCaptains = await captainModel.find({});
+    const activeCaptains = await captainModel.find({ status: "active" });
+    const connectedCaptains = await captainModel.find({ 
+      socketId: { $exists: true, $ne: null } 
+    });
+    
+    // Get pending rides
+    const pendingRides = await rideModel.find({ status: "pending" });
+    
+    // Check if current captain would receive rides for each vehicle type
+    const vehicleTypes = ['car', 'bike', 'auto'];
+    const rideEligibility = {};
+    
+    for (const vehicleType of vehicleTypes) {
+      const eligibleCaptains = await captainModel.find({
+        "vehicle.type": vehicleType,
+        status: "active",
+        socketId: { $exists: true, $ne: null }
+      });
+      
+      rideEligibility[vehicleType] = {
+        totalEligible: eligibleCaptains.length,
+        currentCaptainEligible: eligibleCaptains.some(c => c._id.toString() === captain._id.toString())
+      };
+    }
+    
+    const debugInfo = {
+      currentCaptain: {
+        id: captain._id,
+        name: `${captain.fullname.firstname} ${captain.fullname.lastname}`,
+        status: captain.status,
+        vehicleType: captain.vehicle.type,
+        socketId: captain.socketId,
+        hasLocation: !!captain.location,
+        locationCoordinates: captain.location?.coordinates,
+        lastOnline: captain.lastOnline,
+        isVerified: captain.isVerified
+      },
+      systemStats: {
+        totalCaptains: allCaptains.length,
+        activeCaptains: activeCaptains.length,
+        connectedCaptains: connectedCaptains.length,
+        pendingRides: pendingRides.length
+      },
+      rideEligibility,
+      recentPendingRides: pendingRides.slice(0, 5).map(ride => ({
+        id: ride._id,
+        vehicleType: ride.vehicle,
+        pickup: ride.pickup.substring(0, 50) + '...',
+        destination: ride.destination.substring(0, 50) + '...',
+        createdAt: ride.createdAt,
+        fare: ride.fare
+      })),
+      recommendations: []
+    };
+    
+    // Add recommendations based on findings
+    if (captain.status !== 'active') {
+      debugInfo.recommendations.push('Captain status is not active. Set status to active to receive rides.');
+    }
+    
+    if (!captain.socketId) {
+      debugInfo.recommendations.push('Captain is not connected via socket. Ensure proper socket connection.');
+    }
+    
+    if (!captain.location || captain.location.coordinates[0] === 0 && captain.location.coordinates[1] === 0) {
+      debugInfo.recommendations.push('Captain location is not set or is at default coordinates. Update location to receive nearby rides.');
+    }
+    
+    if (!captain.isVerified) {
+      debugInfo.recommendations.push('Captain is not verified. Some rides may require verified drivers.');
+    }
+    
+    if (pendingRides.length === 0) {
+      debugInfo.recommendations.push('No pending rides available at the moment.');
+    }
+    
+    res.status(200).json({
+      success: true,
+      debug: debugInfo,
+      timestamp: new Date()
+    });
+    
+  } catch (error) {
+    console.error("❌ Error in debug captain status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get debug information",
+      error: error.message
+    });
+  }
+};
 
 // Get user's ride history
 module.exports.getUserRideHistory = async (req, res) => {

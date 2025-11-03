@@ -134,4 +134,10 @@ router.get('/captain/history',
     rideController.getCaptainRideHistory
 );
 
+// Debug endpoint to check captain status and ride notifications
+router.get('/debug/captain-status',
+    authMiddleware.authCaptain,
+    rideController.debugCaptainStatus
+);
+
 module.exports = router;

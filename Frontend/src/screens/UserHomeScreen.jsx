@@ -168,20 +168,45 @@ function UserHomeScreen() {
     debounce(async (inputValue, token) => {
       if (inputValue.length >= 3) {
         try {
+          console.log('🔍 Fetching location suggestions for:', inputValue);
+          
           const response = await axios.get(
-            `${import.meta.env.VITE_SERVER_URL
-            }/map/get-suggestions?input=${inputValue}`,
+            `${import.meta.env.VITE_SERVER_URL}/map/get-suggestions?input=${inputValue}`,
             {
               headers: {
                 token: token,
               },
+              timeout: 10000 // 10 second timeout
             }
           );
-          Console.log(response.data);
-          setLocationSuggestion(response.data);
+          
+          Console.log('✅ Location suggestions response:', response.data);
+          
+          // Validate response
+          const suggestions = Array.isArray(response.data) ? response.data : [];
+          setLocationSuggestion(suggestions);
+          
+          if (suggestions.length === 0) {
+            console.log('⚠️ No location suggestions found for:', inputValue);
+          }
         } catch (error) {
-          Console.error(error);
+          Console.error('❌ Location suggestions error:', error);
+          
+          // Clear suggestions on error
+          setLocationSuggestion([]);
+          
+          // Don't show error to user for suggestions - just log it
+          if (error.code === 'ECONNABORTED') {
+            console.warn('Location suggestions request timed out');
+          } else if (error.response) {
+            console.warn('Location suggestions server error:', error.response.status);
+          } else if (error.request) {
+            console.warn('Location suggestions network error');
+          }
         }
+      } else {
+        // Clear suggestions if input is too short
+        setLocationSuggestion([]);
       }
     }, 700),
     []
@@ -208,28 +233,76 @@ function UserHomeScreen() {
     Console.log(pickupLocation, destinationLocation);
     try {
       setLoading(true);
+      
+      // Validate inputs
+      if (!pickupLocation || !destinationLocation) {
+        alert('Please select both pickup and destination locations');
+        setLoading(false);
+        return;
+      }
+
+      if (!token) {
+        alert('Authentication required. Please login again.');
+        setLoading(false);
+        return;
+      }
+
       setMapLocation(
         `https://www.google.com/maps?q=${pickupLocation} to ${destinationLocation}&output=embed`
       );
+      
+      console.log('🚗 Calculating fare for:', {
+        pickup: pickupLocation,
+        destination: destinationLocation
+      });
+
       const response = await axios.get(
-        `${import.meta.env.VITE_SERVER_URL
-        }/ride/get-fare?pickup=${pickupLocation}&destination=${destinationLocation}`,
+        `${import.meta.env.VITE_SERVER_URL}/ride/get-fare?pickup=${pickupLocation}&destination=${destinationLocation}`,
         {
           headers: {
             token: token,
           },
+          timeout: 15000 // 15 second timeout
         }
       );
-      Console.log(response);
-      setFare(response.data.fare);
+      
+      Console.log('✅ Fare calculation response:', response);
+      
+      // Validate response
+      if (!response.data || !response.data.fare) {
+        throw new Error('Invalid fare response from server');
+      }
 
+      // Validate fare structure
+      const fareData = response.data.fare;
+      if (!fareData.auto || !fareData.car || !fareData.bike) {
+        throw new Error('Incomplete fare data received');
+      }
+
+      setFare(fareData);
       setShowFindTripPanel(false);
       setShowSelectVehiclePanel(true);
       setLocationSuggestion([]);
       setLoading(false);
+      
+      console.log('🎯 Fare calculation successful:', fareData);
     } catch (error) {
-      Console.log(error);
+      console.error('❌ Fare calculation failed:', error);
       setLoading(false);
+      
+      // Enhanced error handling
+      let errorMessage = 'Failed to calculate fare. Please try again.';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please check your connection and try again.';
+      } else if (error.response) {
+        errorMessage = error.response.data?.message || 'Server error. Please try again.';
+      } else if (error.request) {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      alert(errorMessage);
+      Console.log('Fare calculation error details:', error);
     }
   };
 
