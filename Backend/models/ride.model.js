@@ -27,6 +27,11 @@ const rideSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "card", "paypal", "frimi", "ezcash", "mcash"],
+      default: "cash",
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "ongoing", "completed", "cancelled"],

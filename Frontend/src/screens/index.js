@@ -37,6 +37,7 @@ import MapScreen from "./MapScreen";
 // Payment screens
 import PaymentMethods from "./PaymentMethods";
 import PaymentHistory from "./PaymentHistory";
+import RidePayment from "./RidePayment";
 
 // Notification screens
 import Notifications from "./Notifications";
@@ -80,6 +81,7 @@ export {
   MapScreen,
   PaymentMethods,
   PaymentHistory,
+  RidePayment,
   Notifications,
   Messages,
   RateApp,

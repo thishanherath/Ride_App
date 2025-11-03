@@ -48,7 +48,7 @@ module.exports.createRide = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { pickup, destination, vehicleType } = req.body;
+  const { pickup, destination, vehicleType, paymentMethod = 'cash' } = req.body;
 
   try {
     const ride = await rideService.createRide({
@@ -56,6 +56,7 @@ module.exports.createRide = async (req, res) => {
       pickup,
       destination,
       vehicleType,
+      paymentMethod,
     });
 
     const user = await userModel.findOne({ _id: req.user._id });
@@ -671,6 +672,84 @@ module.exports.getCaptainRideHistory = async (req, res) => {
       error: error.message,
       rides: [],
       total: 0
+    });
+  }
+};
+
+// End ride and trigger payment if needed
+module.exports.endRide = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { rideId } = req.body;
+    const captain = req.captain;
+
+    console.log(`🏁 Captain ${captain.fullname.firstname} ending ride: ${rideId}`);
+
+    // End the ride using the service
+    const ride = await rideService.endRide({
+      rideId,
+      captain
+    });
+
+    console.log(`✅ Ride ${rideId} completed successfully`);
+
+    // Check if payment method is card and trigger payment page
+    if (ride.paymentMethod === 'card') {
+      console.log(`💳 Card payment detected for ride ${rideId}, triggering payment page`);
+      
+      // Get user's socket ID and send payment required event
+      const userWithSocket = await userModel.findById(ride.user._id);
+      
+      if (userWithSocket && userWithSocket.socketId) {
+        console.log(`📡 Sending payment required event to user socket: ${userWithSocket.socketId}`);
+        
+        const paymentData = {
+          rideId: ride._id,
+          fare: ride.fare,
+          pickup: ride.pickup,
+          destination: ride.destination,
+          vehicleType: ride.vehicle,
+          captain: {
+            fullname: captain.fullname,
+            phone: captain.phone
+          },
+          distance: ride.distance,
+          duration: ride.duration,
+          paymentMethod: 'card'
+        };
+
+        const success = sendMessageToSocketId(userWithSocket.socketId, {
+          event: "ride-payment-required",
+          data: paymentData
+        });
+
+        if (success) {
+          console.log(`✅ Payment required event sent successfully to user`);
+        } else {
+          console.log(`❌ Failed to send payment required event to user`);
+        }
+      } else {
+        console.log(`⚠️ User socket not found, cannot trigger payment page`);
+      }
+    } else {
+      console.log(`💵 Cash payment method, no payment page needed`);
+    }
+
+    res.status(200).json({
+      success: true,
+      ride,
+      message: "Ride completed successfully"
+    });
+
+  } catch (error) {
+    console.error("❌ Error ending ride:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to end ride"
     });
   }
 };

@@ -148,6 +148,7 @@ module.exports.createRide = async ({
   pickup,
   destination,
   vehicleType,
+  paymentMethod = 'cash'
 }) => {
   if (!user || !pickup || !destination || !vehicleType) {
     throw new Error("All fields are required");
@@ -162,6 +163,7 @@ module.exports.createRide = async ({
       destination,
       fare: fare[vehicleType],
       vehicle: vehicleType,
+      paymentMethod,
       distance: distanceTime.distance.value,
       duration: distanceTime.duration.value,
       otp: getOtp(6), // Generate 6-digit OTP

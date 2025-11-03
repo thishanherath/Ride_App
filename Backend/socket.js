@@ -321,13 +321,42 @@ function initializeSocket(server) {
         }
 
         // Find and update the ride
-        const ride = await rideModel.findById(rideId);
+        const ride = await rideModel.findById(rideId).populate('user captain');
         if (!ride) {
           return socket.emit("ride-status-error", { message: "Ride not found" });
         }
 
         // Use the enhanced updateStatus method
         await ride.updateStatus(status, updatedBy, reason);
+
+        // Special handling for ride completion
+        if (status === 'completed') {
+          // Check if user selected card payment
+          const paymentMethod = ride.paymentMethod || 'cash'; // Default to cash if not set
+          
+          if (paymentMethod === 'card') {
+            // Trigger payment page for user
+            if (ride.user && ride.user.socketId) {
+              sendMessageToSocketId(ride.user.socketId, {
+                event: "ride-payment-required",
+                data: {
+                  rideId: ride._id,
+                  fare: ride.fare,
+                  pickup: ride.pickup,
+                  destination: ride.destination,
+                  vehicleType: ride.vehicle,
+                  captain: {
+                    fullname: ride.captain.fullname,
+                    phone: ride.captain.phone
+                  },
+                  distance: ride.distance,
+                  duration: ride.duration,
+                  paymentMethod: 'card'
+                }
+              });
+            }
+          }
+        }
 
         // Notify all parties in the ride room
         socket.to(rideId).emit("ride-status-changed", {

@@ -29,6 +29,72 @@ module.exports.getPaymentMethods = async (req, res) => {
 /**
  * Create payment intent for card payments
  */
+module.exports.createIntent = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      errors: errors.array()
+    });
+  }
+
+  try {
+    const { rideId, amount, currency = 'LKR' } = req.body;
+    
+    // Verify ride exists and belongs to user
+    const ride = await rideModel.findOne({
+      _id: rideId,
+      user: req.user._id
+    });
+    
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ride not found or access denied'
+      });
+    }
+    
+    // Create payment intent
+    const result = await paymentService.createCardPaymentIntent(
+      amount,
+      currency.toLowerCase(),
+      {
+        rideId,
+        userId: req.user._id,
+        userEmail: req.user.email
+      }
+    );
+    
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to create payment intent',
+        error: result.error
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      paymentIntentId: result.paymentIntentId,
+      clientSecret: result.clientSecret,
+      amount: result.amount,
+      currency: result.currency,
+      message: 'Payment intent created successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creating payment intent:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment intent',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Create payment intent for card payments (legacy)
+ */
 module.exports.createPaymentIntent = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

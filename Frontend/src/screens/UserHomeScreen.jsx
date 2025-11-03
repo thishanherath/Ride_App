@@ -88,6 +88,24 @@ function UserHomeScreen() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
+  // Payment handling functions
+  const handlePaymentSelect = (paymentMethod) => {
+    console.log('💳 Payment method selected:', paymentMethod);
+    setSelectedPaymentMethod(paymentMethod);
+  };
+
+  const handlePaymentComplete = (paymentResult) => {
+    console.log('✅ Payment completed:', paymentResult);
+    setPaymentProcessing(false);
+    
+    if (paymentResult.success) {
+      // Create ride with selected payment method
+      createRide(paymentResult.method);
+    } else {
+      alert('Payment failed: ' + paymentResult.message);
+    }
+  };
+
 
   const rideTimeout = useRef(null);
 
@@ -275,11 +293,16 @@ function UserHomeScreen() {
         return;
       }
 
+      // Extract payment method string from object if needed
+      const paymentMethodString = typeof paymentMethod === 'string' 
+        ? paymentMethod 
+        : paymentMethod?.id || paymentMethod?.type || 'cash';
+
       console.log('🚀 Creating ride with payment method:', {
         pickup: pickupLocation,
         destination: destinationLocation,
         vehicleType: selectedVehicle,
-        paymentMethod,
+        paymentMethod: paymentMethodString,
         fare: fare[selectedVehicle]
       });
 
@@ -289,7 +312,7 @@ function UserHomeScreen() {
           pickup: pickupLocation,
           destination: destinationLocation,
           vehicleType: selectedVehicle,
-          paymentMethod,
+          paymentMethod: paymentMethodString,
         },
         {
           headers: {
@@ -350,40 +373,6 @@ function UserHomeScreen() {
       }
 
       alert(errorMessage);
-    }
-  };
-
-  // Handle payment method selection
-  const handlePaymentSelect = (paymentMethod) => {
-    setSelectedPaymentMethod(paymentMethod);
-    console.log('💳 Payment method selected:', paymentMethod);
-  };
-
-  // Handle payment completion
-  const handlePaymentComplete = (paymentResult) => {
-    console.log('💰 Payment method selected:', paymentResult);
-    
-    if (paymentResult.success) {
-      // For card payments, just store the method and create ride without processing payment
-      if (paymentResult.method === 'card') {
-        createRide({
-          type: 'card',
-          name: 'Card Payment (Pay after ride)',
-          deferred: true, // Mark as deferred payment
-          paymentIntentId: paymentResult.paymentId
-        });
-      } else {
-        // For other methods, process payment immediately
-        createRide({
-          type: paymentResult.method,
-          name: selectedPaymentMethod?.name || 'Payment',
-          paymentId: paymentResult.paymentId,
-          instructions: paymentResult.instructions
-        });
-      }
-    } else {
-      alert('Payment method selection failed: ' + paymentResult.message);
-      setShowPaymentSelector(false);
     }
   };
 
@@ -830,8 +819,29 @@ function UserHomeScreen() {
       // Handle connection errors gracefully
     });
 
+    // Handle ride payment requirement
+    socket.on("ride-payment-required", (data) => {
+      console.log("💳 Payment required for completed ride:", data);
+      console.log("🔍 Data details:", {
+        hasRideId: !!data.rideId,
+        hasFare: !!data.fare,
+        rideId: data.rideId,
+        fare: data.fare,
+        fullData: data
+      });
+      
+      // Navigate to payment page with ride data
+      console.log("🚀 Navigating to payment page...");
+      navigateTo('/user/ride-payment', {
+        state: {
+          rideData: data
+        }
+      });
+    });
+
     return () => {
       socket.off("receiveMessage");
+      socket.off("ride-payment-required");
     };
   }, [confirmedRideData]);
 

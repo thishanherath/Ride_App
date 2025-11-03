@@ -74,7 +74,7 @@ router.post(
   "/create-intent",
   authMiddleware.authUser,
   createPaymentIntentValidation,
-  paymentController.createPaymentIntent
+  paymentController.createIntent
 );
 
 /**

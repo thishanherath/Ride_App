@@ -32,7 +32,8 @@ import {
   Notifications,
   Messages,
   RateApp,
-  Support
+  Support,
+  RidePayment
 } from "./screens/";
 import { logger } from "./utils/logger";
 import { SocketDataContext } from "./contexts/SocketContext";
@@ -131,6 +132,14 @@ function App() {
                 element={
                   <UserProtectedWrapper>
                     <PaymentMethods />
+                  </UserProtectedWrapper>
+                }
+              />
+              <Route
+                path="/user/ride-payment"
+                element={
+                  <UserProtectedWrapper>
+                    <RidePayment />
                   </UserProtectedWrapper>
                 }
               />
