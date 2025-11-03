@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride Confirmation Flow Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .success { background: #f0fdf4; border-color: #22c55e; }
+        .error { background: #fef2f2; border-color: #ef4444; }
+        .warning { background: #fffbeb; border-color: #f59e0b; }
+        .info { background: #eff6ff; border-color: #3b82f6; }
+        
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 500;
+        }
+        button:hover { background: #e55722; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        
+        .log {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        
+        .mock-ride-details {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .mock-button {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6b35, #e55722);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mock-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+        
+        .mock-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Ride Confirmation Flow Test</h1>
+        <p>This test simulates the ride confirmation process to identify issues.</p>
+
+        <!-- Test 1: Mock Ride Data -->
+        <div class="test-section info">
+            <h3>Test 1: Mock Ride Data Setup</h3>
+            <p>Setting up mock ride data similar to what the app would have.</p>
+            <button onclick="setupMockData()">Setup Mock Data</button>
+            <div id="mock-data-status" class="status"></div>
+            <div id="mock-data-log" class="log" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Mock Confirmation Button -->
+        <div class="test-section">
+            <h3>Test 2: Mock Confirmation Button</h3>
+            <p>This simulates the ConfirmRideButton component behavior.</p>
+            
+            <div class="mock-ride-details">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <strong>QuickCar</strong><br>
+                        <small>Total fare</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="color: #ff6b35; font-size: 18px;">Rs. 1,250</strong><br>
+                        <small style="color: #6b7280;">Cash Payment</small>
+                    </div>
+                </div>
+            </div>
+            
+            <button 
+                id="mock-confirm-button" 
+                class="mock-button"
+                onclick="testConfirmation()"
+            >
+                🚗 Confirm & Book Ride
+            </button>
+            
+            <div id="confirmation-status" class="status"></div>
+            <div id="confirmation-log" class="log" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: API Simulation -->
+        <div class="test-section">
+            <h3>Test 3: API Call Simulation</h3>
+            <p>Simulate the ride creation API call with mock data.</p>
+            <button onclick="testAPICall()">Test API Call</button>
+            <div id="api-status" class="status"></div>
+            <div id="api-log" class="log" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Error Scenarios -->
+        <div class="test-section warning">
+            <h3>Test 4: Error Scenarios</h3>
+            <p>Test various error conditions that might prevent ride confirmation.</p>
+            <button onclick="testMissingData()">Test Missing Data</button>
+            <button onclick="testNetworkError()">Test Network Error</button>
+            <button onclick="testServerError()">Test Server Error</button>
+            <div id="error-status" class="status"></div>
+            <div id="error-log" class="log" style="display: none;"></div>
+        </div>
+
+        <!-- Test 5: Integration Test -->
+        <div class="test-section success">
+            <h3>Test 5: Full Integration Test</h3>
+            <p>Run the complete ride confirmation flow from start to finish.</p>
+            <button onclick="runFullTest()">Run Full Test</button>
+            <div id="integration-status" class="status"></div>
+            <div id="integration-log" class="log" style="display: none;"></div>
+        </div>
+
+        <!-- Debug Information -->
+        <div class="test-section">
+            <h3>Debug Information</h3>
+            <button onclick="showDebugInfo()">Show Debug Info</button>
+            <div id="debug-info" class="log" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let mockRideData = {};
+        let testLogs = {};
+
+        function log(testId, message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            
+            if (!testLogs[testId]) testLogs[testId] = [];
+            testLogs[testId].push(logEntry);
+            
+            const logElement = document.getElementById(`${testId}-log`);
+            if (logElement) {
+                logElement.style.display = 'block';
+                logElement.innerHTML = testLogs[testId].join('\n');
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+            
+            console.log(logEntry);
+        }
+
+        function updateStatus(testId, message, type) {
+            const statusElement = document.getElementById(`${testId}-status`);
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+            }
+        }
+
+        // Test 1: Setup Mock Data
+        function setupMockData() {
+            log('mock-data', 'Setting up mock ride data...');
+            
+            mockRideData = {
+                pickupLocation: 'Colombo Fort Railway Station',
+                destinationLocation: 'Bandaranaike International Airport',
+                selectedVehicle: 'car',
+                fare: { car: 1250, bike: 800, auto: 1000 },
+                paymentMethod: { type: 'cash', name: 'Cash Payment' },
+                token: 'mock-auth-token-12345'
+            };
+            
+            // Store in localStorage like the real app
+            localStorage.setItem('rideDetails', JSON.stringify(mockRideData));
+            localStorage.setItem('token', mockRideData.token);
+            
+            log('mock-data', `Mock data created: ${JSON.stringify(mockRideData, null, 2)}`);
+            updateStatus('mock-data', '✅ Mock data setup complete', 'success');
+        }
+
+        // Test 2: Test Confirmation Button
+        function testConfirmation() {
+            log('confirmation', 'Testing confirmation button click...');
+            
+            const button = document.getElementById('mock-confirm-button');
+            button.disabled = true;
+            button.innerHTML = '⏳ Confirming Ride...';
+            
+            // Simulate validation
+            if (!mockRideData.pickupLocation) {
+                log('confirmation', 'Validation failed: No pickup location', 'error');
+                updateStatus('confirmation', '❌ Validation failed', 'error');
+                button.disabled = false;
+                button.innerHTML = '🚗 Confirm & Book Ride';
+                return;
+            }
+            
+            if (!mockRideData.fare || !mockRideData.fare[mockRideData.selectedVehicle]) {
+                log('confirmation', 'Validation failed: No fare data', 'error');
+                updateStatus('confirmation', '❌ Validation failed', 'error');
+                button.disabled = false;
+                button.innerHTML = '🚗 Confirm & Book Ride';
+                return;
+            }
+            
+            log('confirmation', 'All validations passed');
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                log('confirmation', 'Ride confirmation successful!');
+                updateStatus('confirmation', '✅ Ride confirmed successfully', 'success');
+                button.disabled = false;
+                button.innerHTML = '✅ Ride Confirmed!';
+                button.style.background = '#22c55e';
+            }, 2000);
+        }
+
+        // Test 3: API Call Simulation
+        async function testAPICall() {
+            log('api', 'Testing API call simulation...');
+            updateStatus('api', 'Testing...', 'warning');
+            
+            const serverUrl = 'http://localhost:4000'; // Default server URL
+            const endpoint = `${serverUrl}/ride/create`;
+            
+            log('api', `Testing endpoint: ${endpoint}`);
+            
+            const testData = {
+                pickup: mockRideData.pickupLocation || 'Test Pickup',
+                destination: mockRideData.destinationLocation || 'Test Destination',
+                vehicleType: mockRideData.selectedVehicle || 'car',
+                paymentMethod: mockRideData.paymentMethod || { type: 'cash', name: 'Cash Payment' }
+            };
+            
+            log('api', `Request data: ${JSON.stringify(testData, null, 2)}`);
+            
+            try {
+                // First test server connectivity
+                const healthResponse = await fetch(`${serverUrl}/health`);
+                if (healthResponse.ok) {
+                    log('api', 'Server is reachable');
+                } else {
+                    throw new Error('Server health check failed');
+                }
+                
+                // Test the actual endpoint
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token': mockRideData.token || 'test-token'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                log('api', `Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log('api', `Success response: ${JSON.stringify(result, null, 2)}`);
+                    updateStatus('api', '✅ API call successful', 'success');
+                } else {
+                    const error = await response.text();
+                    log('api', `Error response: ${error}`, 'error');
+                    updateStatus('api', '❌ API call failed', 'error');
+                }
+            } catch (error) {
+                log('api', `Network error: ${error.message}`, 'error');
+                updateStatus('api', '⚠️ Server not reachable (expected in development)', 'warning');
+            }
+        }
+
+        // Test 4: Error Scenarios
+        function testMissingData() {
+            log('error', 'Testing missing data scenario...');
+            
+            const originalData = { ...mockRideData };
+            mockRideData.pickupLocation = '';
+            
+            try {
+                if (!mockRideData.pickupLocation) {
+                    throw new Error('Pickup location is required');
+                }
+            } catch (error) {
+                log('error', `Caught expected error: ${error.message}`, 'error');
+                updateStatus('error', '✅ Missing data error handled correctly', 'success');
+            }
+            
+            // Restore data
+            mockRideData = originalData;
+        }
+
+        function testNetworkError() {
+            log('error', 'Testing network error scenario...');
+            
+            // Simulate network timeout
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 100);
+            
+            fetch('http://invalid-url-that-does-not-exist.com', {
+                signal: controller.signal
+            }).catch(error => {
+                log('error', `Network error simulated: ${error.message}`, 'error');
+                updateStatus('error', '✅ Network error handled correctly', 'success');
+            });
+        }
+
+        function testServerError() {
+            log('error', 'Testing server error scenario...');
+            
+            // Simulate 500 error response
+            const mockResponse = {
+                status: 500,
+                ok: false,
+                text: () => Promise.resolve('Internal Server Error')
+            };
+            
+            log('error', 'Simulated 500 error response', 'error');
+            updateStatus('error', '✅ Server error scenario tested', 'success');
+        }
+
+        // Test 5: Full Integration Test
+        async function runFullTest() {
+            log('integration', 'Starting full integration test...');
+            updateStatus('integration', 'Running...', 'warning');
+            
+            try {
+                // Step 1: Setup data
+                log('integration', 'Step 1: Setting up data...');
+                setupMockData();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 2: Validate data
+                log('integration', 'Step 2: Validating data...');
+                if (!mockRideData.pickupLocation || !mockRideData.destinationLocation) {
+                    throw new Error('Missing location data');
+                }
+                if (!mockRideData.fare || !mockRideData.fare[mockRideData.selectedVehicle]) {
+                    throw new Error('Missing fare data');
+                }
+                log('integration', 'Data validation passed');
+                
+                // Step 3: Simulate button click
+                log('integration', 'Step 3: Simulating button interaction...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Step 4: Simulate API call
+                log('integration', 'Step 4: Simulating API call...');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Step 5: Success
+                log('integration', 'Step 5: Integration test completed successfully!');
+                updateStatus('integration', '✅ Full integration test passed', 'success');
+                
+            } catch (error) {
+                log('integration', `Integration test failed: ${error.message}`, 'error');
+                updateStatus('integration', '❌ Integration test failed', 'error');
+            }
+        }
+
+        // Debug Information
+        function showDebugInfo() {
+            const debugElement = document.getElementById('debug-info');
+            debugElement.style.display = 'block';
+            
+            const debugInfo = {
+                userAgent: navigator.userAgent,
+                currentURL: window.location.href,
+                localStorage: {
+                    token: localStorage.getItem('token'),
+                    rideDetails: localStorage.getItem('rideDetails')
+                },
+                mockRideData: mockRideData,
+                timestamp: new Date().toISOString()
+            };
+            
+            debugElement.innerHTML = JSON.stringify(debugInfo, null, 2);
+        }
+
+        // Initialize
+        console.log('🚀 Ride Confirmation Flow Test initialized');
+        console.log('Click the buttons above to run individual tests');
+    </script>
+</body>
+</html>

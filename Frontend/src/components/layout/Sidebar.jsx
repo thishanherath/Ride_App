@@ -19,7 +19,7 @@ import {
   PhoneIcon,
   InfoIcon
 } from 'lucide-react';
-import Avatar from './Avatar';
+import ProfileAvatar from '../ProfileAvatar';
 
 const Sidebar = ({ 
   isOpen = false, 
@@ -247,7 +247,7 @@ const Sidebar = ({
       {/* Backdrop */}
       <div 
         className={`
-          fixed inset-0 bg-black/60 backdrop-blur-sm z-40 
+          fixed inset-0 bg-black/30 backdrop-blur-sm z-[9997] 
           transition-all duration-300 ease-out
           ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}
         `}
@@ -258,16 +258,16 @@ const Sidebar = ({
       {/* Sidebar */}
       <div 
         className={`
-          fixed top-0 left-0 h-full bg-white shadow-2xl z-50
+          fixed top-0 left-0 h-full bg-white shadow-2xl z-[9998]
           transform transition-all duration-300 ease-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           flex flex-col
-          w-80 sm:w-80 md:w-80 lg:w-80
-          max-w-[85vw] sm:max-w-none
+          w-80 sm:w-80 md:w-96 lg:w-96
+          max-w-[85vw]
           ${className}
         `}
         style={{
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+          boxShadow: '4px 0 24px -2px rgba(0, 0, 0, 0.12), 8px 0 16px -4px rgba(0, 0, 0, 0.08)'
         }}
         {...props}
       >
@@ -277,18 +277,18 @@ const Sidebar = ({
             <div className="flex items-center space-x-4">
               {user && (
                 <div className="relative group">
-                  <Avatar 
-                    src={user.avatar} 
-                    name={user.name}
+                  <ProfileAvatar 
+                    key={`sidebar-avatar-${user.profilePicture || user._lastUpdated || user._id || 'default'}`}
+                    user={user}
                     size="lg"
+                    showStatus={true}
                     className="ring-3 ring-white/30 shadow-lg transition-all duration-200 group-hover:ring-white/50"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse" />
                 </div>
               )}
               <div>
                 <h2 className="font-semibold text-lg text-white mb-1">
-                  {user?.name || 'Guest User'}
+                  {user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User'}
                 </h2>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-orange-100 capitalize">

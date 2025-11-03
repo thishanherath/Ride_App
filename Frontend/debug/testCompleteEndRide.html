@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete End Ride Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        button { padding: 12px 24px; margin: 8px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .step { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .step-title { font-weight: bold; color: #333; margin-bottom: 10px; }
+        .step-result { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏁 Complete End Ride Test</h1>
+        
+        <div class="section info">
+            <h3>📋 Test Overview</h3>
+            <p>This tool tests the complete end ride flow and verifies that the captain dashboard shows up correctly after ending a ride.</p>
+        </div>
+        
+        <div class="section">
+            <h3>🔍 Step 1: Check Prerequisites</h3>
+            <button class="btn-primary" onclick="checkPrerequisites()">Check Prerequisites</button>
+            <div id="prerequisites-result"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🧪 Step 2: Test End Ride API</h3>
+            <button class="btn-warning" onclick="testEndRideAPI()">Test End Ride API</button>
+            <div id="api-result"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🎭 Step 3: Simulate Complete Flow</h3>
+            <button class="btn-success" onclick="simulateCompleteFlow()">Simulate Complete End Ride Flow</button>
+            <div id="flow-result"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🔧 Step 4: Force UI Reset</h3>
+            <button class="btn-danger" onclick="forceUIReset()">Force Captain Dashboard</button>
+            <div id="reset-result"></div>
+        </div>
+        
+        <div class="section">
+            <h3>📊 Results Log</h3>
+            <div id="results-log"></div>
+        </div>
+    </div>
+    
+    <script>
+        const SERVER_URL = 'http://localhost:4000';
+        
+        function log(message, type = 'info') {
+            const resultsLog = document.getElementById('results-log');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsLog.appendChild(div);
+            resultsLog.scrollTop = resultsLog.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateSection(sectionId, content, type = 'info') {
+            const section = document.getElementById(sectionId);
+            section.innerHTML = `<div class="${type}">${content}</div>`;
+        }
+        
+        function checkPrerequisites() {
+            log('🔍 Checking prerequisites...', 'info');
+            
+            const token = localStorage.getItem('token');
+            const rideDetails = localStorage.getItem('rideDetails');
+            const userData = localStorage.getItem('userData');
+            
+            let results = [];
+            
+            // Check token
+            if (token) {
+                results.push('✅ Token: Present');
+                log('✅ Authentication token found', 'success');
+            } else {
+                results.push('❌ Token: Missing');
+                log('❌ No authentication token found', 'error');
+            }
+            
+            // Check user data
+            if (userData) {
+                try {
+                    const parsed = JSON.parse(userData);
+                    if (parsed.type === 'captain') {
+                        results.push('✅ User Type: Captain');
+                        log('✅ Logged in as captain', 'success');
+                    } else {
+                        results.push('⚠️ User Type: Not captain');
+                        log('⚠️ Not logged in as captain', 'warning');
+                    }
+                } catch (e) {
+                    results.push('❌ User Data: Invalid JSON');
+                    log('❌ Invalid user data', 'error');
+                }
+            } else {
+                results.push('❌ User Data: Missing');
+                log('❌ No user data found', 'error');
+            }
+            
+            // Check ride details
+            if (rideDetails) {
+                try {
+                    const ride = JSON.parse(rideDetails);
+                    results.push('✅ Active Ride: Present');
+                    results.push(`📋 Ride ID: ${ride._id}`);
+                    log('✅ Active ride found for testing', 'success');
+                } catch (e) {
+                    results.push('❌ Ride Details: Invalid JSON');
+                    log('❌ Invalid ride details', 'error');
+                }
+            } else {
+                results.push('⚠️ Active Ride: None (will simulate)');
+                log('⚠️ No active ride - will create test data', 'warning');
+            }
+            
+            updateSection('prerequisites-result', results.join('<br>'), 'info');
+        }
+        
+        async function testEndRideAPI() {
+            log('🧪 Testing end ride API...', 'info');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                updateSection('api-result', '❌ No token found. Please login first.', 'error');
+                log('❌ Cannot test API without token', 'error');
+                return;
+            }
+            
+            let rideDetails = localStorage.getItem('rideDetails');
+            let rideId;
+            
+            if (rideDetails) {
+                try {
+                    const ride = JSON.parse(rideDetails);
+                    rideId = ride._id;
+                } catch (e) {
+                    updateSection('api-result', '❌ Invalid ride details in localStorage', 'error');
+                    return;
+                }
+            } else {
+                // Create a test ride ID for testing
+                rideId = '507f1f77bcf86cd799439011'; // Example MongoDB ObjectId
+                log('⚠️ Using test ride ID for API test', 'warning');
+            }
+            
+            try {
+                updateSection('api-result', '📡 Making API call...', 'info');
+                
+                const response = await fetch(`${SERVER_URL}/ride/end-ride`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'token': token
+                    },
+                    body: JSON.stringify({ rideId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateSection('api-result', `✅ API Success<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    log('✅ End ride API call successful', 'success');
+                } else {
+                    updateSection('api-result', `❌ API Failed: ${response.status}<br><pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                    log(`❌ End ride API failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateSection('api-result', `❌ Network Error: ${error.message}`, 'error');
+                log(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateCompleteFlow() {
+            log('🎭 Simulating complete end ride flow...', 'info');
+            
+            let steps = [];
+            
+            // Step 1: Clear ride data
+            localStorage.removeItem("rideDetails");
+            localStorage.removeItem("showPanel");
+            localStorage.removeItem("showBtn");
+            steps.push('✅ Step 1: Cleared ride data from localStorage');
+            
+            // Step 2: Set captain dashboard state
+            localStorage.setItem("showPanel", "false");
+            localStorage.setItem("showBtn", "accept");
+            steps.push('✅ Step 2: Set captain dashboard state');
+            
+            // Step 3: Simulate success message
+            steps.push('✅ Step 3: Should show success message');
+            
+            // Step 4: Expected UI state
+            steps.push('✅ Step 4: Expected UI state:');
+            steps.push('   - Captain dashboard visible');
+            steps.push('   - Map showing captain location');
+            steps.push('   - Accept ride button ready');
+            steps.push('   - Earnings and stats displayed');
+            
+            updateSection('flow-result', steps.join('<br>'), 'success');
+            log('🎭 Complete flow simulation finished', 'success');
+            
+            // Suggest next action
+            setTimeout(() => {
+                updateSection('flow-result', steps.join('<br>') + '<br><br>🔄 <strong>Now refresh the captain home page to see the dashboard!</strong>', 'success');
+            }, 1000);
+        }
+        
+        function forceUIReset() {
+            log('🔧 Forcing UI reset to captain dashboard...', 'warning');
+            
+            // Clear all ride-related data
+            localStorage.removeItem("rideDetails");
+            localStorage.removeItem("showPanel");
+            localStorage.removeItem("showBtn");
+            localStorage.removeItem("messages");
+            
+            // Set expected captain dashboard state
+            localStorage.setItem("showPanel", "false");
+            localStorage.setItem("showBtn", "accept");
+            
+            let resetSteps = [
+                '✅ Cleared all ride data',
+                '✅ Reset UI state to captain dashboard',
+                '✅ Ready for new rides',
+                '',
+                '🔄 <strong>Refresh the page now!</strong>',
+                '',
+                'Expected result:',
+                '- Captain dashboard should be visible',
+                '- Map should show your location',
+                '- Ready to accept new rides'
+            ];
+            
+            updateSection('reset-result', resetSteps.join('<br>'), 'success');
+            log('🔧 UI reset completed', 'success');
+            
+            // Auto-refresh after 3 seconds
+            setTimeout(() => {
+                if (confirm('Auto-refresh the captain home page now?')) {
+                    window.location.href = '/captain/home';
+                }
+            }, 3000);
+        }
+        
+        // Auto-run on load
+        window.onload = function() {
+            log('🚀 Complete End Ride Test Tool Loaded', 'info');
+            checkPrerequisites();
+        };
+    </script>
+</body>
+</html>

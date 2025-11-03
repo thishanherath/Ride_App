@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Picture Display Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .avatar-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            margin: 10px;
+        }
+        .avatar-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Profile Picture Display Test</h1>
+    <p>This tool tests profile picture display functionality across components.</p>
+
+    <div class="test-section">
+        <h2>📋 Test Configuration</h2>
+        <div>
+            <label>Server URL: </label>
+            <input type="text" id="serverUrl" value="http://localhost:4000" style="width: 300px; padding: 5px;">
+        </div>
+        <div style="margin-top: 10px;">
+            <label>Auth Token: </label>
+            <input type="text" id="authToken" placeholder="Enter your auth token" style="width: 400px; padding: 5px;">
+        </div>
+        <button onclick="loadTokenFromStorage()">Load Token from localStorage</button>
+        <button onclick="testProfilePictureDisplay()">🧪 Test Profile Picture Display</button>
+    </div>
+
+    <div class="test-section">
+        <h2>👤 Current User Profile</h2>
+        <div id="userProfileResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 Profile Picture URL Tests</h2>
+        <div id="urlTestResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎨 Avatar Component Preview</h2>
+        <div id="avatarPreviewResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 Component Integration Test</h2>
+        <div id="integrationTestResults"></div>
+    </div>
+
+    <script>
+        let serverUrl = 'http://localhost:4000';
+        let authToken = '';
+
+        function loadTokenFromStorage() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('authToken').value = token;
+                authToken = token;
+                addResult('info', 'Token loaded from localStorage: ' + token.substring(0, 20) + '...', 'userProfileResults');
+            } else {
+                addResult('warning', 'No token found in localStorage', 'userProfileResults');
+            }
+        }
+
+        function addResult(type, message, containerId) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testProfilePictureDisplay() {
+            serverUrl = document.getElementById('serverUrl').value;
+            authToken = document.getElementById('authToken').value;
+
+            if (!authToken) {
+                alert('Please enter an auth token');
+                return;
+            }
+
+            // Clear previous results
+            ['userProfileResults', 'urlTestResults', 'avatarPreviewResults', 'integrationTestResults'].forEach(clearResults);
+
+            console.log('🧪 Starting Profile Picture Display Test...');
+
+            // Test 1: Get current user profile
+            await testUserProfile();
+
+            // Test 2: Test URL construction
+            await testUrlConstruction();
+
+            // Test 3: Test avatar preview
+            await testAvatarPreview();
+
+            // Test 4: Test component integration
+            await testComponentIntegration();
+        }
+
+        async function testUserProfile() {
+            try {
+                addResult('info', '🔄 Fetching user profile...', 'userProfileResults');
+
+                const response = await fetch(`${serverUrl}/user/profile`, {
+                    headers: {
+                        'token': authToken
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('👤 User profile data:', data);
+
+                if (data.user) {
+                    const user = data.user;
+                    
+                    addResult('success', `✅ User profile loaded: ${user.fullname?.firstname} ${user.fullname?.lastname}`, 'userProfileResults');
+                    addResult('info', `📧 Email: ${user.email}`, 'userProfileResults');
+                    addResult('info', `📱 Phone: ${user.phone || 'Not set'}`, 'userProfileResults');
+                    
+                    if (user.profilePicture) {
+                        addResult('success', `🖼️ Profile picture found: ${user.profilePicture}`, 'userProfileResults');
+                        
+                        // Create avatar preview
+                        const avatarContainer = document.createElement('div');
+                        avatarContainer.className = 'avatar-container';
+                        
+                        const fullUrl = user.profilePicture.startsWith('http') 
+                            ? user.profilePicture 
+                            : `${serverUrl}${user.profilePicture}`;
+                        
+                        avatarContainer.innerHTML = `
+                            <img src="${fullUrl}" alt="Profile Picture" class="avatar-preview" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div style="display:none; width:60px; height:60px; background:#ddd; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#666;">
+                                ${user.fullname?.firstname?.charAt(0) || '?'}${user.fullname?.lastname?.charAt(0) || ''}
+                            </div>
+                            <div>
+                                <strong>Profile Picture Preview</strong><br>
+                                <small>URL: ${fullUrl}</small>
+                            </div>
+                        `;
+                        
+                        document.getElementById('userProfileResults').appendChild(avatarContainer);
+                    } else {
+                        addResult('warning', '⚠️ No profile picture set for user', 'userProfileResults');
+                    }
+
+                    // Store user data for other tests
+                    window.testUserData = user;
+                } else {
+                    addResult('error', '❌ No user data in response', 'userProfileResults');
+                }
+
+            } catch (error) {
+                console.error('❌ User profile test failed:', error);
+                addResult('error', `❌ Failed to fetch user profile: ${error.message}`, 'userProfileResults');
+            }
+        }
+
+        async function testUrlConstruction() {
+            addResult('info', '🔄 Testing URL construction...', 'urlTestResults');
+
+            const testCases = [
+                { input: null, expected: null, description: 'Null input' },
+                { input: '', expected: null, description: 'Empty string' },
+                { input: '/uploads/profile-pictures/test.jpg', expected: `${serverUrl}/uploads/profile-pictures/test.jpg`, description: 'Relative path' },
+                { input: 'http://example.com/image.jpg', expected: 'http://example.com/image.jpg', description: 'Full URL' },
+                { input: 'https://example.com/image.jpg', expected: 'https://example.com/image.jpg', description: 'HTTPS URL' }
+            ];
+
+            testCases.forEach(testCase => {
+                const result = getProfilePictureUrl(testCase.input);
+                const passed = result === testCase.expected;
+                
+                addResult(
+                    passed ? 'success' : 'error',
+                    `${passed ? '✅' : '❌'} ${testCase.description}: "${testCase.input}" → "${result}" (expected: "${testCase.expected}")`,
+                    'urlTestResults'
+                );
+            });
+        }
+
+        function getProfilePictureUrl(profilePicture) {
+            if (!profilePicture) return null;
+            
+            if (profilePicture.startsWith('http')) {
+                return profilePicture;
+            }
+            
+            return `${serverUrl}${profilePicture}`;
+        }
+
+        async function testAvatarPreview() {
+            addResult('info', '🔄 Testing avatar preview generation...', 'avatarPreviewResults');
+
+            if (!window.testUserData) {
+                addResult('warning', '⚠️ No user data available for avatar test', 'avatarPreviewResults');
+                return;
+            }
+
+            const user = window.testUserData;
+            
+            // Test different avatar scenarios
+            const scenarios = [
+                {
+                    name: 'Current User Avatar',
+                    user: user,
+                    description: 'Using actual user data'
+                },
+                {
+                    name: 'User with No Picture',
+                    user: { ...user, profilePicture: null },
+                    description: 'Fallback to initials'
+                },
+                {
+                    name: 'User with Broken Picture',
+                    user: { ...user, profilePicture: '/uploads/nonexistent.jpg' },
+                    description: 'Error handling test'
+                }
+            ];
+
+            scenarios.forEach(scenario => {
+                const avatarContainer = document.createElement('div');
+                avatarContainer.className = 'avatar-container';
+                
+                const avatarUrl = getUserAvatar(scenario.user);
+                const displayName = getUserDisplayName(scenario.user);
+                
+                avatarContainer.innerHTML = `
+                    <div style="position: relative;">
+                        ${avatarUrl ? `
+                            <img src="${avatarUrl}" alt="Avatar" class="avatar-preview" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div style="display:none; width:60px; height:60px; background:#007bff; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
+                                ${getInitials(displayName)}
+                            </div>
+                        ` : `
+                            <div style="width:60px; height:60px; background:#007bff; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">
+                                ${getInitials(displayName)}
+                            </div>
+                        `}
+                    </div>
+                    <div>
+                        <strong>${scenario.name}</strong><br>
+                        <small>Name: ${displayName}</small><br>
+                        <small>URL: ${avatarUrl || 'None'}</small><br>
+                        <small>${scenario.description}</small>
+                    </div>
+                `;
+                
+                document.getElementById('avatarPreviewResults').appendChild(avatarContainer);
+            });
+        }
+
+        function getUserAvatar(user) {
+            if (!user) return null;
+            if (user.avatar) return user.avatar;
+            if (user.profilePicture) {
+                return getProfilePictureUrl(user.profilePicture);
+            }
+            return null;
+        }
+
+        function getUserDisplayName(user) {
+            if (!user) return 'Guest User';
+            if (user.name) return user.name;
+            if (user.fullname) {
+                const { firstname, lastname } = user.fullname;
+                return `${firstname || ''} ${lastname || ''}`.trim() || 'User';
+            }
+            return 'User';
+        }
+
+        function getInitials(name) {
+            if (!name) return '?';
+            return name
+                .split(' ')
+                .map(word => word.charAt(0))
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+        }
+
+        async function testComponentIntegration() {
+            addResult('info', '🔄 Testing component integration...', 'integrationTestResults');
+
+            if (!window.testUserData) {
+                addResult('warning', '⚠️ No user data available for integration test', 'integrationTestResults');
+                return;
+            }
+
+            const user = window.testUserData;
+            
+            // Test mapping function
+            const mappedUser = mapUserForComponents(user);
+            
+            addResult('info', `📊 Original user data:`, 'integrationTestResults');
+            addResult('info', `   - profilePicture: ${user.profilePicture || 'null'}`, 'integrationTestResults');
+            addResult('info', `   - fullname: ${JSON.stringify(user.fullname)}`, 'integrationTestResults');
+            
+            addResult('info', `🔄 Mapped user data:`, 'integrationTestResults');
+            addResult('info', `   - avatar: ${mappedUser.avatar || 'null'}`, 'integrationTestResults');
+            addResult('info', `   - name: ${mappedUser.name}`, 'integrationTestResults');
+            
+            // Test localStorage sync
+            const storedUserData = localStorage.getItem('userData');
+            if (storedUserData) {
+                try {
+                    const parsed = JSON.parse(storedUserData);
+                    addResult('success', '✅ localStorage userData found', 'integrationTestResults');
+                    addResult('info', `   - Stored profilePicture: ${parsed.data?.profilePicture || 'null'}`, 'integrationTestResults');
+                } catch (error) {
+                    addResult('error', '❌ Failed to parse localStorage userData', 'integrationTestResults');
+                }
+            } else {
+                addResult('warning', '⚠️ No userData in localStorage', 'integrationTestResults');
+            }
+
+            // Test component compatibility
+            const isCompatible = mappedUser.avatar !== undefined && mappedUser.name !== undefined;
+            addResult(
+                isCompatible ? 'success' : 'error',
+                `${isCompatible ? '✅' : '❌'} Component compatibility: ${isCompatible ? 'PASS' : 'FAIL'}`,
+                'integrationTestResults'
+            );
+        }
+
+        function mapUserForComponents(userData) {
+            if (!userData) return null;
+            
+            return {
+                ...userData,
+                avatar: getProfilePictureUrl(userData.profilePicture),
+                name: getUserDisplayName(userData)
+            };
+        }
+
+        // Auto-load token on page load
+        window.addEventListener('load', () => {
+            loadTokenFromStorage();
+        });
+    </script>
+</body>
+</html>

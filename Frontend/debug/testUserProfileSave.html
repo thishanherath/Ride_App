@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile Save Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .success { border-color: #10b981; background: #f0fdf4; }
+        .error { border-color: #ef4444; background: #fef2f2; }
+        .warning { border-color: #f59e0b; background: #fffbeb; }
+        .info { border-color: #3b82f6; background: #eff6ff; }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn.primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .btn.primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn.secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn.secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .diagnostic-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-indicator.pass {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-indicator.fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-indicator.unknown {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #10b981;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.info {
+            background: #3b82f6;
+        }
+
+        .response-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 User Profile Save Test</h1>
+
+        <!-- System Diagnostics -->
+        <div class="test-section info">
+            <h2>🔍 System Diagnostics</h2>
+            <div id="diagnostics">
+                <div class="diagnostic-item">
+                    <span>Server URL</span>
+                    <span id="server-url" class="status-indicator unknown">Checking...</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Authentication Token</span>
+                    <span id="auth-token" class="status-indicator unknown">Checking...</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Backend Connection</span>
+                    <span id="backend-connection" class="status-indicator unknown">Checking...</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>Update Endpoint</span>
+                    <span id="update-endpoint" class="status-indicator unknown">Checking...</span>
+                </div>
+                <div class="diagnostic-item">
+                    <span>User Profile</span>
+                    <span id="user-profile" class="status-indicator unknown">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Update Form -->
+        <div class="test-section">
+            <h2>📝 Profile Update Test</h2>
+            <form id="profileForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="firstname">First Name</label>
+                        <input type="text" id="firstname" name="firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastname">Last Name</label>
+                        <input type="text" id="lastname" name="lastname" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" pattern="[0-9]{10}" required>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button type="button" id="loadCurrentData" class="btn secondary">
+                        Load Current Data
+                    </button>
+                    <button type="submit" id="saveButton" class="btn primary">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Response Display -->
+        <div class="test-section">
+            <h2>📊 Response Log</h2>
+            <div id="responseLog" class="response-display">
+                Click "Load Current Data" to fetch user profile, then "Save Changes" to test the update.
+            </div>
+        </div>
+
+        <!-- Manual Test Checklist -->
+        <div class="test-section warning">
+            <h2>✅ Test Checklist</h2>
+            <div style="display: grid; gap: 8px;">
+                <label><input type="checkbox"> Form loads with current user data</label>
+                <label><input type="checkbox"> Save button shows loading state when clicked</label>
+                <label><input type="checkbox"> Success message appears after save</label>
+                <label><input type="checkbox"> Error message appears if save fails</label>
+                <label><input type="checkbox"> Form validation works for required fields</label>
+                <label><input type="checkbox"> Phone number validation works</label>
+                <label><input type="checkbox"> User context updates after save</label>
+                <label><input type="checkbox"> localStorage updates after save</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://localhost:4000';
+        let currentUser = null;
+
+        // Run diagnostics on page load
+        document.addEventListener('DOMContentLoaded', runDiagnostics);
+
+        async function runDiagnostics() {
+            console.log('🔍 Running profile save diagnostics...');
+            logResponse('🔍 Starting diagnostics...');
+
+            // Check server URL
+            const serverUrlElement = document.getElementById('server-url');
+            serverUrlElement.textContent = SERVER_URL;
+            serverUrlElement.className = 'status-indicator pass';
+
+            // Check authentication token
+            const token = localStorage.getItem('token');
+            const authTokenElement = document.getElementById('auth-token');
+            if (token) {
+                authTokenElement.textContent = 'Present';
+                authTokenElement.className = 'status-indicator pass';
+                logResponse(`✅ Token found: ${token.substring(0, 20)}...`);
+            } else {
+                authTokenElement.textContent = 'Missing';
+                authTokenElement.className = 'status-indicator fail';
+                logResponse('❌ No authentication token found');
+            }
+
+            // Check backend connection
+            const backendElement = document.getElementById('backend-connection');
+            try {
+                const response = await fetch(`${SERVER_URL}/user/profile`, {
+                    headers: { 'token': token }
+                });
+                if (response.ok) {
+                    backendElement.textContent = 'Connected';
+                    backendElement.className = 'status-indicator pass';
+                    logResponse('✅ Backend connection successful');
+                } else {
+                    backendElement.textContent = `Error ${response.status}`;
+                    backendElement.className = 'status-indicator fail';
+                    logResponse(`❌ Backend connection failed: ${response.status}`);
+                }
+            } catch (error) {
+                backendElement.textContent = 'Failed';
+                backendElement.className = 'status-indicator fail';
+                logResponse(`❌ Backend connection error: ${error.message}`);
+            }
+
+            // Check update endpoint
+            const updateElement = document.getElementById('update-endpoint');
+            try {
+                const response = await fetch(`${SERVER_URL}/user/update`, {
+                    method: 'OPTIONS'
+                });
+                updateElement.textContent = 'Available';
+                updateElement.className = 'status-indicator pass';
+                logResponse('✅ Update endpoint available');
+            } catch (error) {
+                updateElement.textContent = 'Not Available';
+                updateElement.className = 'status-indicator fail';
+                logResponse(`❌ Update endpoint not available: ${error.message}`);
+            }
+
+            // Check user profile
+            const profileElement = document.getElementById('user-profile');
+            try {
+                const response = await fetch(`${SERVER_URL}/user/profile`, {
+                    headers: { 'token': token }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    profileElement.textContent = 'Loaded';
+                    profileElement.className = 'status-indicator pass';
+                    logResponse(`✅ User profile loaded: ${data.user.email}`);
+                } else {
+                    profileElement.textContent = 'Failed';
+                    profileElement.className = 'status-indicator fail';
+                    logResponse(`❌ Failed to load user profile: ${response.status}`);
+                }
+            } catch (error) {
+                profileElement.textContent = 'Error';
+                profileElement.className = 'status-indicator fail';
+                logResponse(`❌ User profile error: ${error.message}`);
+            }
+        }
+
+        // Load current user data into form
+        document.getElementById('loadCurrentData').addEventListener('click', async () => {
+            if (!currentUser) {
+                showToast('No user data available. Run diagnostics first.', 'error');
+                return;
+            }
+
+            document.getElementById('firstname').value = currentUser.fullname?.firstname || '';
+            document.getElementById('lastname').value = currentUser.fullname?.lastname || '';
+            document.getElementById('phone').value = currentUser.phone || '';
+
+            logResponse(`📝 Form loaded with current user data:
+First Name: ${currentUser.fullname?.firstname || 'N/A'}
+Last Name: ${currentUser.fullname?.lastname || 'N/A'}
+Phone: ${currentUser.phone || 'N/A'}
+Email: ${currentUser.email || 'N/A'}`);
+
+            showToast('Form loaded with current data', 'success');
+        });
+
+        // Handle form submission
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const saveButton = document.getElementById('saveButton');
+            const originalText = saveButton.textContent;
+            
+            try {
+                // Show loading state
+                saveButton.innerHTML = '<div class="loading-spinner"></div>Saving...';
+                saveButton.disabled = true;
+
+                const formData = new FormData();
+                const firstname = document.getElementById('firstname').value;
+                const lastname = document.getElementById('lastname').value;
+                const phone = document.getElementById('phone').value;
+
+                // Validate required fields
+                if (!firstname || !lastname || !phone) {
+                    throw new Error('Please fill in all required fields');
+                }
+
+                // Validate phone number
+                if (!/^[0-9]{10}$/.test(phone)) {
+                    throw new Error('Please enter a valid 10-digit phone number');
+                }
+
+                formData.append('fullname[firstname]', firstname);
+                formData.append('fullname[lastname]', lastname);
+                formData.append('phone', phone);
+
+                logResponse(`🔄 Sending update request:
+First Name: ${firstname}
+Last Name: ${lastname}
+Phone: ${phone}`);
+
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${SERVER_URL}/user/update`, {
+                    method: 'POST',
+                    headers: {
+                        'token': token
+                    },
+                    body: formData
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    logResponse(`✅ Profile update successful:
+${JSON.stringify(responseData, null, 2)}`);
+                    
+                    // Update localStorage
+                    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                    if (userData && responseData.user) {
+                        userData.data = responseData.user;
+                        localStorage.setItem('userData', JSON.stringify(userData));
+                        logResponse('✅ localStorage updated');
+                    }
+
+                    showToast('Profile updated successfully!', 'success');
+                } else {
+                    throw new Error(responseData.message || `Update failed with status ${response.status}`);
+                }
+
+            } catch (error) {
+                logResponse(`❌ Profile update failed: ${error.message}`);
+                showToast(`Update failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
+            }
+        });
+
+        function logResponse(message) {
+            const log = document.getElementById('responseLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Log initial info
+        console.log('🔧 User Profile Save Test');
+        console.log('Server URL:', SERVER_URL);
+        console.log('Token present:', !!localStorage.getItem('token'));
+    </script>
+</body>
+</html>

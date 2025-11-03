@@ -51,9 +51,13 @@ const RideStatusNotification = ({
   // Calculate estimated arrival time
   useEffect(() => {
     if (rideStatus === 'accepted' && captainInfo?.location) {
-      // Rough calculation: 2 minutes per km
+      // Rough calculation: 2 minutes per km, minimum 3 minutes
       const distance = captainInfo.distanceToPickup || 5;
-      setEstimatedArrival(Math.ceil(distance * 2));
+      const estimatedMinutes = Math.max(3, Math.ceil(distance * 2));
+      setEstimatedArrival(estimatedMinutes);
+    } else if (rideStatus === 'accepted') {
+      // Default ETA if no location data
+      setEstimatedArrival(5);
     }
   }, [rideStatus, captainInfo]);
 
@@ -68,6 +72,7 @@ const RideStatusNotification = ({
   const getStatusConfig = (status) => {
     switch (status) {
       case 'pending':
+      case 'searching':
         return {
           color: 'yellow',
           icon: Clock,
@@ -208,7 +213,7 @@ const RideStatusNotification = ({
               )}
             </div>
 
-            {/* Captain Information */}
+            {/* Driver Information */}
             {captainInfo && rideStatus !== 'completed' && rideStatus !== 'cancelled' && (
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between mb-3">

@@ -33,9 +33,26 @@ module.exports.registerUser = asyncHandler(async (req, res) => {
   await user.save();
 
   const token = user.generateAuthToken();
+  
+  // Return user data with profilePicture field
+  const userResponse = {
+    _id: user._id,
+    fullname: {
+      firstname: user.fullname.firstname,
+      lastname: user.fullname.lastname,
+    },
+    email: user.email,
+    phone: user.phone,
+    rides: user.rides,
+    socketId: user.socketId,
+    emailVerified: user.emailVerified,
+    profilePicture: user.profilePicture,
+    rating: user.rating,
+  };
+  
   res
     .status(201)
-    .json({ message: "User registered successfully", token, user });
+    .json({ message: "User registered successfully", token, user: userResponse });
 });
 
 module.exports.verifyEmail = asyncHandler(async (req, res) => {
@@ -108,6 +125,8 @@ module.exports.loginUser = asyncHandler(async (req, res) => {
       rides: user.rides,
       socketId: user.socketId,
       emailVerified: user.emailVerified,
+      profilePicture: user.profilePicture,
+      rating: user.rating,
     },
   });
 });
@@ -122,20 +141,61 @@ module.exports.updateUserProfile = asyncHandler(async (req, res) => {
     return res.status(400).json(errors.array());
   }
 
-  const { fullname,  phone } = req.body;
+  const { fullname, phone, removeProfilePicture } = req.body;
+  
+  // Prepare update data
+  const updateData = {
+    fullname: fullname,
+    phone,
+  };
+
+  // If removing profile picture
+  if (removeProfilePicture === 'true' || removeProfilePicture === true) {
+    updateData.profilePicture = null;
+  }
+  // If a profile picture was uploaded, add it to update data
+  else if (req.file) {
+    updateData.profilePicture = `/uploads/profile-pictures/${req.file.filename}`;
+  }
 
   const updatedUserData = await userModel.findOneAndUpdate(
     { _id: req.user._id },
-    {
-      fullname: fullname,
-      phone,
-    },
+    updateData,
     { new: true }
   );
 
   res
     .status(200)
     .json({ message: "Profile updated successfully", user: updatedUserData });
+});
+
+module.exports.uploadProfilePicture = asyncHandler(async (req, res) => {
+  console.log('🔄 uploadProfilePicture called');
+  console.log('📁 req.file:', req.file);
+  console.log('👤 req.user:', req.user);
+  
+  if (!req.file) {
+    console.log('❌ No file uploaded');
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  const profilePictureUrl = `/uploads/profile-pictures/${req.file.filename}`;
+  console.log('🔗 Generated profilePictureUrl:', profilePictureUrl);
+  
+  const updatedUser = await userModel.findOneAndUpdate(
+    { _id: req.user._id },
+    { profilePicture: profilePictureUrl },
+    { new: true }
+  );
+
+  console.log('✅ Updated user in database:', updatedUser);
+  console.log('📸 Updated user profilePicture:', updatedUser.profilePicture);
+
+  res.status(200).json({
+    message: "Profile picture uploaded successfully",
+    profilePicture: profilePictureUrl,
+    user: updatedUser
+  });
 });
 
 module.exports.logoutUser = asyncHandler(async (req, res) => {

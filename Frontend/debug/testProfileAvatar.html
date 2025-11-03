@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Avatar Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .avatar-test {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Profile Avatar Component Test</h1>
+    
+    <div class="test-section">
+        <h2>Current User Avatar</h2>
+        <button onclick="testCurrentUserAvatar()">Test Current User Avatar</button>
+        <div id="currentUserResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Avatar Tests</h2>
+        <button onclick="testAvatarScenarios()">Test Different Avatar Scenarios</button>
+        <div id="avatarScenariosResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Information</h2>
+        <button onclick="showDebugInfo()">Show Debug Info</button>
+        <div id="debugResult"></div>
+    </div>
+
+    <script>
+        function addResult(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testCurrentUserAvatar() {
+            clearResults('currentUserResult');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                addResult('currentUserResult', 'error', '❌ No auth token found');
+                return;
+            }
+
+            try {
+                // Get user profile
+                const response = await fetch('http://localhost:4000/user/profile', {
+                    headers: { token }
+                });
+
+                if (!response.ok) {
+                    addResult('currentUserResult', 'error', `❌ API Error: ${response.status}`);
+                    return;
+                }
+
+                const data = await response.json();
+                const user = data.user;
+
+                addResult('currentUserResult', 'info', `👤 User: ${user.fullname?.firstname} ${user.fullname?.lastname}`);
+                
+                // Test avatar creation
+                const avatarContainer = document.createElement('div');
+                avatarContainer.className = 'avatar-test';
+                
+                // Create avatar element (simulating ProfileAvatar logic)
+                const avatar = createAvatarElement(user, 'lg');
+                avatarContainer.appendChild(avatar);
+                
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <strong>Profile Avatar Test</strong><br>
+                    <small>Profile Picture: ${user.profilePicture || 'None'}</small><br>
+                    <small>Full Name: ${user.fullname?.firstname} ${user.fullname?.lastname}</small>
+                `;
+                avatarContainer.appendChild(info);
+                
+                document.getElementById('currentUserResult').appendChild(avatarContainer);
+
+            } catch (error) {
+                addResult('currentUserResult', 'error', `❌ Error: ${error.message}`);
+            }
+        }
+
+        function createAvatarElement(user, size = 'md') {
+            const sizeClasses = {
+                sm: { width: '32px', height: '32px', fontSize: '14px' },
+                md: { width: '40px', height: '40px', fontSize: '16px' },
+                lg: { width: '48px', height: '48px', fontSize: '18px' }
+            };
+
+            const avatar = document.createElement('div');
+            const styles = sizeClasses[size];
+            
+            avatar.style.width = styles.width;
+            avatar.style.height = styles.height;
+            avatar.style.borderRadius = '50%';
+            avatar.style.display = 'flex';
+            avatar.style.alignItems = 'center';
+            avatar.style.justifyContent = 'center';
+            avatar.style.fontSize = styles.fontSize;
+            avatar.style.fontWeight = 'bold';
+            avatar.style.color = 'white';
+            avatar.style.position = 'relative';
+            avatar.style.overflow = 'hidden';
+
+            // Get profile picture URL
+            let profilePictureUrl = null;
+            if (user.avatar) {
+                profilePictureUrl = user.avatar;
+            } else if (user.profilePicture) {
+                profilePictureUrl = user.profilePicture.startsWith('http') 
+                    ? user.profilePicture 
+                    : `http://localhost:4000${user.profilePicture}`;
+            }
+
+            if (profilePictureUrl) {
+                // Try to load image
+                const img = document.createElement('img');
+                img.src = profilePictureUrl;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                
+                img.onload = () => {
+                    console.log('✅ Avatar image loaded successfully');
+                };
+                
+                img.onerror = () => {
+                    console.log('❌ Avatar image failed to load, showing initials');
+                    // Replace with initials
+                    avatar.innerHTML = '';
+                    avatar.style.background = 'linear-gradient(135deg, #f97316, #ea580c)';
+                    avatar.textContent = getInitials(user);
+                };
+                
+                avatar.appendChild(img);
+            } else {
+                // Show initials
+                avatar.style.background = 'linear-gradient(135deg, #f97316, #ea580c)';
+                avatar.textContent = getInitials(user);
+            }
+
+            return avatar;
+        }
+
+        function getInitials(user) {
+            if (!user) return '?';
+            
+            let name = '';
+            if (user.fullname) {
+                name = `${user.fullname.firstname || ''} ${user.fullname.lastname || ''}`.trim();
+            }
+            
+            if (!name) return '?';
+            
+            return name
+                .split(' ')
+                .map(word => word.charAt(0))
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+        }
+
+        function testAvatarScenarios() {
+            clearResults('avatarScenariosResult');
+            
+            const scenarios = [
+                {
+                    name: 'User with Profile Picture',
+                    user: {
+                        fullname: { firstname: 'John', lastname: 'Doe' },
+                        profilePicture: '/uploads/profile-pictures/test.jpg'
+                    }
+                },
+                {
+                    name: 'User with Avatar URL',
+                    user: {
+                        fullname: { firstname: 'Jane', lastname: 'Smith' },
+                        avatar: 'http://localhost:4000/uploads/profile-pictures/test.jpg'
+                    }
+                },
+                {
+                    name: 'User without Picture',
+                    user: {
+                        fullname: { firstname: 'Bob', lastname: 'Wilson' }
+                    }
+                },
+                {
+                    name: 'User with Only First Name',
+                    user: {
+                        fullname: { firstname: 'Alice', lastname: '' }
+                    }
+                }
+            ];
+
+            scenarios.forEach(scenario => {
+                const container = document.createElement('div');
+                container.className = 'avatar-test';
+                
+                const avatar = createAvatarElement(scenario.user, 'md');
+                container.appendChild(avatar);
+                
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <strong>${scenario.name}</strong><br>
+                    <small>Initials: ${getInitials(scenario.user)}</small>
+                `;
+                container.appendChild(info);
+                
+                document.getElementById('avatarScenariosResult').appendChild(container);
+            });
+        }
+
+        function showDebugInfo() {
+            clearResults('debugResult');
+            
+            // Show localStorage data
+            const userData = localStorage.getItem('userData');
+            const token = localStorage.getItem('token');
+            
+            addResult('debugResult', 'info', `🔑 Token: ${token ? 'Present' : 'Missing'}`);
+            
+            if (userData) {
+                const parsed = JSON.parse(userData);
+                addResult('debugResult', 'info', `📦 UserData Type: ${parsed.type}`);
+                addResult('debugResult', 'info', `👤 User Data: ${JSON.stringify(parsed.data, null, 2)}`);
+            } else {
+                addResult('debugResult', 'error', '❌ No userData in localStorage');
+            }
+            
+            // Show environment
+            addResult('debugResult', 'info', `🌍 Current URL: ${window.location.href}`);
+            addResult('debugResult', 'info', `🌍 User Agent: ${navigator.userAgent}`);
+        }
+
+        // Auto-run debug info on load
+        window.addEventListener('load', () => {
+            showDebugInfo();
+        });
+    </script>
+</body>
+</html>

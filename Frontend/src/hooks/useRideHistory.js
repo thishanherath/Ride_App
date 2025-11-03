@@ -31,9 +31,10 @@ const useRideHistory = (userType = 'user') => {
       setLoading(true);
       setError(null);
 
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
       const endpoint = userType === 'captain' 
-        ? `${import.meta.env.VITE_SERVER_URL}/ride/captain/history`
-        : `${import.meta.env.VITE_SERVER_URL}/ride/user/history`;
+        ? `${serverUrl}/ride/captain/history`
+        : `${serverUrl}/ride/user/history`;
 
       const params = {
         page,

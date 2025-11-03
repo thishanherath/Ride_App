@@ -7,6 +7,10 @@ import {
   RideDetails,
   LocationPermission,
 } from "../components";
+import ModernRideConfirmation from "../components/ModernRideConfirmation";
+import RideStatusNotification from "../components/RideStatusNotification";
+import RideProcessFlow from "../components/RideProcessFlow";
+
 import SimpleMap from "../components/SimpleMap";
 import LocationDisplay from "../components/LocationDisplay";
 
@@ -24,13 +28,13 @@ function UserHomeScreen() {
   const token = localStorage.getItem("token"); // this token is in use
   const { socket } = useContext(SocketDataContext);
   const { user } = useUser();
-  const { 
-    sidebarOpen, 
-    currentPath, 
-    openSidebar, 
-    closeSidebar, 
-    navigateTo, 
-    handleLogout 
+  const {
+    sidebarOpen,
+    currentPath,
+    openSidebar,
+    closeSidebar,
+    navigateTo,
+    handleLogout
   } = useNavigation();
   const [messages, setMessages] = useState(
     JSON.parse(localStorage.getItem("messages")) || []
@@ -74,8 +78,13 @@ function UserHomeScreen() {
     bike: 0,
   });
   const [confirmedRideData, setConfirmedRideData] = useState(null);
+  const [rideStatus, setRideStatus] = useState('idle'); // 'idle', 'searching', 'accepted', 'ongoing', 'completed', 'cancelled'
+  const [driverInfo, setDriverInfo] = useState(null);
+  const [showRideProcess, setShowRideProcess] = useState(false);
+
+
   const rideTimeout = useRef(null);
-  
+
   // Auto-fill pickup location when user location is available
   useEffect(() => {
     const fillPickupLocation = async () => {
@@ -90,36 +99,36 @@ function UserHomeScreen() {
               }
             }
           );
-          
+
           if (response.ok) {
             const data = await response.json();
             let address = '';
-            
+
             if (data && data.address) {
               // Build a readable address
               const components = [];
-              
+
               if (data.address.house_number && data.address.road) {
                 components.push(`${data.address.house_number} ${data.address.road}`);
               } else if (data.address.road) {
                 components.push(data.address.road);
               }
-              
+
               if (data.address.neighbourhood) {
                 components.push(data.address.neighbourhood);
               } else if (data.address.suburb) {
                 components.push(data.address.suburb);
               }
-              
+
               if (data.address.city) {
                 components.push(data.address.city);
               } else if (data.address.town) {
                 components.push(data.address.town);
               }
-              
+
               address = components.length > 0 ? components.join(', ') : data.display_name?.split(',').slice(0, 3).join(', ');
             }
-            
+
             if (address) {
               setPickupLocation(address);
               console.log('📍 Auto-filled pickup location:', address);
@@ -143,10 +152,10 @@ function UserHomeScreen() {
         }
       }
     };
-    
+
     fillPickupLocation();
   }, [location, pickupLocation]);
-  
+
   // Captain location for tracking
   const [captainLocation, setCaptainLocation] = useState(null);
 
@@ -224,15 +233,50 @@ function UserHomeScreen() {
     }
   };
 
-  const createRide = async () => {
+  const createRide = async (paymentMethod = null) => {
     try {
       setLoading(true);
+
+      // Enhanced validation
+      if (!pickupLocation || !destinationLocation) {
+        alert('Please select both pickup and destination locations');
+        setLoading(false);
+        return;
+      }
+
+      if (!selectedVehicle) {
+        alert('Please select a vehicle type');
+        setLoading(false);
+        return;
+      }
+
+      if (!fare || !fare[selectedVehicle] || fare[selectedVehicle] <= 0) {
+        alert('Fare information is not available. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      if (!token) {
+        alert('Authentication required. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('🚀 Creating ride with data:', {
+        pickup: pickupLocation,
+        destination: destinationLocation,
+        vehicleType: selectedVehicle,
+        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
+        fare: fare[selectedVehicle]
+      });
+
       const response = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/ride/create`,
         {
           pickup: pickupLocation,
           destination: destinationLocation,
           vehicleType: selectedVehicle,
+          paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
         },
         {
           headers: {
@@ -240,11 +284,14 @@ function UserHomeScreen() {
           },
         }
       );
-      Console.log(response);
+
+      console.log('✅ Ride creation response:', response.data);
+
       const rideData = {
         pickup: pickupLocation,
         destination: destinationLocation,
         vehicleType: selectedVehicle,
+        paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
         fare: fare,
         confirmedRideData: confirmedRideData,
         _id: response.data._id,
@@ -253,16 +300,44 @@ function UserHomeScreen() {
       setLoading(false);
       setRideCreated(true);
 
+      // Set ride status to searching (maps to backend 'pending')
+      setRideStatus('searching');
+
+      // Show the full ride process flow
+      setShowRideProcess(true);
+
+      // Show success message
+      console.log('🎉 Ride created successfully! Looking for drivers...');
+
       // Automatically cancel the ride after 5 minutes (300000ms) if no driver accepts
       const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000; // 5 minutes fallback
       rideTimeout.current = setTimeout(() => {
         console.log('🕐 Ride timeout reached, cancelling ride automatically');
         cancelRide();
       }, timeoutDuration);
-      
+
     } catch (error) {
-      Console.log(error);
+      console.error('❌ Ride creation failed:', error);
       setLoading(false);
+
+      // Enhanced error handling
+      let errorMessage = 'Failed to create ride. Please try again.';
+
+      if (error.response) {
+        // Server responded with error status
+        console.error('Server error response:', error.response.data);
+        errorMessage = error.response.data.message || error.response.data.error || errorMessage;
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('Network error:', error.request);
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        // Something else happened
+        console.error('Error details:', error.message);
+        errorMessage = error.message || errorMessage;
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -289,6 +364,7 @@ function UserHomeScreen() {
       setShowRideDetailsPanel(false);
       setShowSelectVehiclePanel(false);
       setShowFindTripPanel(true);
+      setShowRideProcess(false);
       setDefaults();
       localStorage.removeItem("rideDetails");
       localStorage.removeItem("panelDetails");
@@ -312,6 +388,8 @@ function UserHomeScreen() {
     });
     setConfirmedRideData(null);
     setRideCreated(false);
+    setRideStatus('idle');
+    setDriverInfo(null);
   };
 
   // Enhanced location management
@@ -358,7 +436,7 @@ function UserHomeScreen() {
         accuracy: location.accuracy,
         isFallback: location.isFallback
       });
-      
+
       const mapUrl = getMapUrl();
       setMapLocation(mapUrl);
       setShowLocationPermission(false);
@@ -369,11 +447,11 @@ function UserHomeScreen() {
   useEffect(() => {
     if (locationError) {
       console.error('❌ Location error:', locationError);
-      
+
       // Show permission dialog for certain errors
-      if (locationError.code === 'PERMISSION_DENIED' || 
-          locationError.code === 'NOT_SUPPORTED' ||
-          permissionStatus === 'denied') {
+      if (locationError.code === 'PERMISSION_DENIED' ||
+        locationError.code === 'NOT_SUPPORTED' ||
+        permissionStatus === 'denied') {
         setShowLocationPermission(true);
       }
     }
@@ -382,10 +460,10 @@ function UserHomeScreen() {
   // Start real-time tracking when component mounts
   useEffect(() => {
     console.log('🚀 Initializing location services...');
-    
+
     // Start watching location for real-time updates
     const trackingId = startLocationTracking();
-    
+
     // Cleanup on unmount
     return () => {
       if (trackingId) {
@@ -397,7 +475,7 @@ function UserHomeScreen() {
   // Handle permission status changes
   useEffect(() => {
     console.log('🔐 Permission status:', permissionStatus);
-    
+
     if (permissionStatus === 'denied') {
       setShowLocationPermission(true);
     } else if (permissionStatus === 'granted' && !hasLocation) {
@@ -421,7 +499,29 @@ function UserHomeScreen() {
       Console.log("Cleared Timeout");
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
-      
+
+      // Update ride status to accepted
+      setRideStatus('accepted');
+
+      // Keep showing the ride process flow
+      setShowRideProcess(true);
+
+      // Set driver information with enhanced details
+      setDriverInfo({
+        _id: data.captain._id,
+        fullname: data.captain.fullname,
+        phone: data.captain.phone,
+        vehicle: {
+          type: data.captain.vehicle?.type || data.vehicle || 'car',
+          plate: data.captain.vehicle?.plate || 'N/A',
+          color: data.captain.vehicle?.color || 'Unknown',
+          model: data.captain.vehicle?.model || 'Unknown'
+        },
+        rating: data.captain.rating?.average || 4.5,
+        location: data.captain.location,
+        distanceToPickup: data.distanceToPickup || 5,
+      });
+
       // Update captain location for real-time tracking
       if (data.captain.location && data.captain.location.coordinates) {
         setCaptainLocation({
@@ -429,73 +529,118 @@ function UserHomeScreen() {
           longitude: data.captain.location.coordinates[0]
         });
       }
-      
+
       setMapLocation(
         `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
       );
       setConfirmedRideData(data);
-      
+
+      // Update ride status to accepted
+      setRideStatus('accepted');
+
       // Show success notification
       console.log("🎉 Ride confirmed! Captain is on the way.");
     });
 
     socket.on("ride-cancelled-by-captain", (data) => {
       Console.log("Ride cancelled by captain", data);
-      
-      // Reset to find trip state
-      setShowRideDetailsPanel(false);
-      setShowSelectVehiclePanel(false);
-      setShowFindTripPanel(true);
-      setDefaults();
-      
-      // Clear stored data
-      localStorage.removeItem("rideDetails");
-      localStorage.removeItem("panelDetails");
-      
+
+      // Update ride status to cancelled
+      setRideStatus('cancelled');
+
+      // Show cancellation for 3 seconds then hide process flow
+      setTimeout(() => {
+        setShowRideProcess(false);
+      }, 3000);
+
+      // Reset after showing cancellation status
+      setTimeout(() => {
+        setRideStatus('idle');
+        setDriverInfo(null);
+        setConfirmedRideData(null);
+        setShowRideDetailsPanel(false);
+        setShowSelectVehiclePanel(false);
+        setShowFindTripPanel(true);
+        setDefaults();
+
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("panelDetails");
+
+        // Refresh location
+        updateLocation();
+      }, 3000);
+
       // Show notification
       console.log("❌ Ride cancelled by captain:", data.reason);
-      alert(`Ride cancelled by captain: ${data.reason || 'No reason provided'}`);
-      
-      // Refresh location
-      updateLocation();
     });
 
     socket.on("captain-location-update", (data) => {
       Console.log("Captain location update", data);
-      
+
       // Update captain location for real-time tracking
       if (data.captainLocation) {
         setCaptainLocation({
           latitude: data.captainLocation.latitude,
           longitude: data.captainLocation.longitude
         });
+
+        // Update map to show captain's current location and route to pickup
+        if (rideStatus === 'accepted') {
+          setMapLocation(
+            `https://www.google.com/maps?q=${data.captainLocation.latitude},${data.captainLocation.longitude} to ${pickupLocation}&output=embed`
+          );
+        }
       }
     });
 
     socket.on("ride-started", (data) => {
       Console.log("Ride started");
+
+      // Update ride status to ongoing
+      setRideStatus('ongoing');
+
+      // Keep showing the ride process flow
+      setShowRideProcess(true);
+
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
-      
+
       // Show notification
       console.log("🚀 Ride started! You're on your way.");
     });
 
     socket.on("ride-ended", (data) => {
       Console.log("Ride Ended");
-      setShowRideDetailsPanel(false);
-      setShowSelectVehiclePanel(false);
-      setShowFindTripPanel(true);
-      setDefaults();
-      localStorage.removeItem("rideDetails");
-      localStorage.removeItem("panelDetails");
 
-      // Show completion notification
-      console.log("✅ Ride completed! Thank you for using our service.");
-      
-      // Refresh location after ride ends
-      updateLocation();
+      // Update ride status to completed
+      setRideStatus('completed');
+
+      // Show completion for 3 seconds then hide process flow
+      setTimeout(() => {
+        setShowRideProcess(false);
+      }, 3000);
+
+      // Reset UI after a delay to show completion status
+      setTimeout(() => {
+        setRideStatus('idle');
+        setDriverInfo(null);
+        setConfirmedRideData(null);
+        setShowRideDetailsPanel(false);
+        setShowSelectVehiclePanel(false);
+        setShowFindTripPanel(true);
+        setDefaults();
+
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("panelDetails");
+
+        // Refresh location after ride ends
+        updateLocation();
+      }, 3000);
+
+      console.log("✅ Ride completed successfully!");
     });
   }, [user]);
 
@@ -560,6 +705,63 @@ function UserHomeScreen() {
       setMessages((prev) => [...prev, { msg, by: "other" }]);
     });
 
+    // Enhanced socket event listeners for ride status updates
+    socket.on("ride-status-changed", (data) => {
+      console.log("Ride status changed:", data);
+
+      // Map backend status to frontend status
+      const statusMapping = {
+        'pending': 'searching',
+        'accepted': 'accepted',
+        'ongoing': 'ongoing',
+        'completed': 'completed',
+        'cancelled': 'cancelled'
+      };
+
+      const frontendStatus = statusMapping[data.status] || data.status;
+      setRideStatus(frontendStatus);
+
+      // Update driver info if provided
+      if (data.driverInfo) {
+        setDriverInfo(data.driverInfo);
+      }
+    });
+
+    // Connection health check response
+    socket.on("health-check", (data) => {
+      console.log("Health check received:", data);
+      socket.emit("health-check-response", {
+        status: "ok",
+        timestamp: new Date(),
+        rideStatus: rideStatus
+      });
+    });
+
+    // Connection status events
+    socket.on("join-success", (data) => {
+      console.log("Socket connection successful:", data);
+    });
+
+    socket.on("join-error", (data) => {
+      console.error("Socket connection error:", data);
+      // Handle reconnection if needed
+      if (data.reconnection && data.reconnection.shouldRetry) {
+        setTimeout(() => {
+          socket.emit("join", { userId: user._id, userType: "user" });
+        }, data.reconnection.retryDelay);
+      }
+    });
+
+    socket.on("connection-timeout-warning", (data) => {
+      console.warn("Connection timeout warning:", data);
+      // Show user-friendly message about connection issues
+    });
+
+    socket.on("connection-error", (data) => {
+      console.error("Connection error:", data);
+      // Handle connection errors gracefully
+    });
+
     return () => {
       socket.off("receiveMessage");
     };
@@ -568,20 +770,27 @@ function UserHomeScreen() {
   return (
     <div className="relative w-full h-screen bg-gray-50 overflow-hidden">
       {/* Modern Sidebar */}
-      <Sidebar 
+      <Sidebar
         isOpen={sidebarOpen}
         onClose={closeSidebar}
-        user={{
-          name: user?.fullname ? `${user.fullname.firstname} ${user.fullname.lastname}` : 'User',
-          avatar: user?.avatar,
-          rating: user?.rating
-        }}
+        user={user}
         userType="user"
         onNavigate={navigateTo}
         currentPath={currentPath}
         onLogout={handleLogout}
       />
-      
+
+      {/* Header with Navigation */}
+      <Header
+        title="QuickRide"
+        showMenu={true}
+        showNotifications={true}
+        user={user}
+        onMenuClick={openSidebar}
+        onNotificationClick={() => navigateTo('/user/notifications')}
+        onProfileClick={() => navigateTo('/user/edit-profile')}
+      />
+
       {/* Free OpenStreetMap with Route Visualization */}
       <div className="absolute inset-0 z-0">
         <SimpleMap
@@ -597,10 +806,10 @@ function UserHomeScreen() {
           className="w-full h-full"
         />
       </div>
-      
+
       {/* Modern Floating Header */}
       <div className="absolute top-0 left-0 right-0 z-30">
-        <Header 
+        <Header
           title="QuickRide"
           user={user}
           onMenuClick={openSidebar}
@@ -611,21 +820,45 @@ function UserHomeScreen() {
       {/* Real-Time Location Status - Show when location is available */}
       {location && location.latitude && (
         <div className="absolute top-20 left-4 right-4 z-30">
-          <LocationDisplay 
+          <LocationDisplay
             location={location}
             showCoordinates={false}
             showAccuracy={true}
             className="shadow-lg"
           />
-          
-          {/* Live Status Indicator */}
+
+          {/* Compact Live Status Indicator */}
           <div className="mt-2 flex justify-center">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 text-xs">
-                <div className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-gray-600 font-medium">
-                  {isWatching ? 'Live Tracking' : 'Location Offline'}
+            <div className={`relative overflow-hidden bg-gradient-to-r ${isWatching
+              ? 'from-green-50 to-emerald-50 border-green-200'
+              : 'from-gray-50 to-slate-50 border-gray-200'
+              } backdrop-blur-sm rounded-full px-3 py-1 shadow-md border`}>
+              {/* Animated background glow */}
+              {isWatching && (
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400/10 to-emerald-400/10 animate-pulse" />
+              )}
+
+              <div className="relative flex items-center gap-2 text-xs">
+                <div className="relative">
+                  <div className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-500' : 'bg-gray-400'
+                    } shadow-sm`} />
+                  {isWatching && (
+                    <div className="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-30" />
+                  )}
+                </div>
+
+                <span className={`font-medium text-xs ${isWatching ? 'text-green-700' : 'text-gray-600'
+                  }`}>
+                  {isWatching ? 'Live' : 'Offline'}
                 </span>
+
+                {isWatching && (
+                  <div className="flex items-center gap-0.5 text-green-600">
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" />
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-0.5 h-0.5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -633,16 +866,15 @@ function UserHomeScreen() {
       )}
 
       {/* Modern Ride Booking Panel with Enhanced Animations */}
-      <div className={`absolute bottom-0 left-0 right-0 z-20 transform transition-all duration-700 ease-out ${
-        showFindTripPanel ? 'animate-slide-up-panel' : 'animate-slide-down-panel'
-      }`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-20 transform transition-all duration-700 ease-out ${showFindTripPanel ? 'animate-slide-up-panel' : 'animate-slide-down-panel'
+        }`}>
         {showFindTripPanel && (
           <Card className="bg-white rounded-t-3xl shadow-2xl border-0 p-6">
             {/* Panel Handle with Micro-interaction */}
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6 hover:bg-gray-400 transition-colors duration-200 cursor-pointer" />
-            
+
             <h2 className="text-xl font-semibold text-gray-900 mb-6 animate-fade-in">Where to?</h2>
-            
+
             {/* Modern Location Inputs with Enhanced Animations */}
             <div className="space-y-3 mb-6">
               <div className="relative animate-slide-in-up">
@@ -659,7 +891,7 @@ function UserHomeScreen() {
                   animate={true}
                 />
               </div>
-              
+
               <div className="relative animate-slide-in-up animate-delay-100">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10">
                   <div className="w-3 h-3 bg-red-500 rounded-full shadow-sm animate-pulse" />
@@ -733,21 +965,96 @@ function UserHomeScreen() {
         fare={fare}
       />
 
-      {/* Ride Details Panel */}
-      <RideDetails
-        pickupLocation={pickupLocation}
-        destinationLocation={destinationLocation}
-        selectedVehicle={selectedVehicle}
-        fare={fare}
-        showPanel={showRideDetailsPanel}
-        setShowPanel={setShowRideDetailsPanel}
-        showPreviousPanel={setShowSelectVehiclePanel}
-        createRide={createRide}
-        cancelRide={cancelRide}
-        loading={loading}
-        rideCreated={rideCreated}
-        confirmedRideData={confirmedRideData}
-      />
+      {/* Modern Ride Confirmation Panel */}
+      {!rideCreated && !confirmedRideData ? (
+        <ModernRideConfirmation
+          pickupLocation={pickupLocation}
+          destinationLocation={destinationLocation}
+          selectedVehicle={selectedVehicle}
+          fare={fare}
+          showPanel={showRideDetailsPanel}
+          setShowPanel={setShowRideDetailsPanel}
+          showPreviousPanel={setShowSelectVehiclePanel}
+          createRide={createRide}
+          loading={loading}
+          onBack={() => {
+            setShowRideDetailsPanel(false);
+            setShowSelectVehiclePanel(true);
+          }}
+        />
+      ) : rideStatus !== 'searching' && (rideCreated || confirmedRideData) ? (
+        /* Original Ride Details Panel for active rides - but NOT during searching */
+        <RideDetails
+          pickupLocation={pickupLocation}
+          destinationLocation={destinationLocation}
+          selectedVehicle={selectedVehicle}
+          fare={fare}
+          showPanel={showRideDetailsPanel}
+          setShowPanel={setShowRideDetailsPanel}
+          showPreviousPanel={setShowSelectVehiclePanel}
+          createRide={createRide}
+          cancelRide={cancelRide}
+          loading={loading}
+          rideCreated={rideCreated}
+          confirmedRideData={confirmedRideData}
+        />
+      ) : null}
+
+      {/* Ride Status Notification - Shows when ride is in progress but NOT when full process flow is shown */}
+      {!showRideProcess && (rideStatus === 'searching' || rideStatus === 'accepted' || rideStatus === 'ongoing' || rideStatus === 'completed' || rideStatus === 'cancelled') && (
+        <div className="absolute top-20 left-4 right-4 z-40">
+          <RideStatusNotification
+            rideStatus={rideStatus}
+            captainInfo={driverInfo}
+            rideDetails={{
+              pickup: pickupLocation,
+              destination: destinationLocation,
+              fare: fare[selectedVehicle],
+              vehicle: selectedVehicle
+            }}
+            onCall={(phone) => {
+              window.location.href = `tel:${phone}`;
+            }}
+            onMessage={(driverId) => {
+              if (confirmedRideData?._id) {
+                navigateTo(`/user/chat/${confirmedRideData._id}`);
+              }
+            }}
+            onCancel={() => {
+              if (rideStatus === 'searching') {
+                cancelRide();
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Full Screen Ride Process Flow */}
+      {showRideProcess && (
+        <RideProcessFlow
+          rideStatus={rideStatus}
+          rideDetails={{
+            pickup: pickupLocation,
+            destination: destinationLocation,
+            fare: fare[selectedVehicle],
+            vehicle: selectedVehicle
+          }}
+          driverInfo={driverInfo}
+          onCall={(phone) => {
+            window.location.href = `tel:${phone}`;
+          }}
+          onMessage={(driverId) => {
+            if (confirmedRideData?._id) {
+              navigateTo(`/user/chat/${confirmedRideData._id}`);
+            }
+          }}
+          onCancel={() => {
+            if (rideStatus === 'searching') {
+              cancelRide();
+            }
+          }}
+        />
+      )}
 
       {/* Location Permission Modal */}
       {showLocationPermission && (

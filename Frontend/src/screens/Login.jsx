@@ -108,7 +108,7 @@ function Login() {
         
         console.log("Captain login response:", captainResponse.data);
         
-        // Captain login successful
+        // Driver login successful
         setLoginStatus("Driver login successful! Redirecting...");
         localStorage.setItem("token", captainResponse.data.token);
         localStorage.setItem("userData", JSON.stringify({
@@ -184,31 +184,7 @@ function Login() {
       title="Welcome back" 
       subtitle="Sign in with your email and password"
     >
-      {/* Role Info Banner */}
-      <motion.div
-        className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4 mb-6"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <div className="flex items-center justify-center gap-4 text-sm">
-          <div className="flex items-center gap-2 text-orange-700">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="font-medium">Passengers</span>
-          </div>
-          <div className="flex items-center gap-2 text-orange-700">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="font-medium">Drivers</span>
-          </div>
-          <div className="flex items-center gap-2 text-orange-700">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="font-medium">Admins</span>
-          </div>
-        </div>
-        <p className="text-center text-xs text-orange-600 mt-2">
-          One login for all user types - we'll automatically redirect you to the right dashboard
-        </p>
-      </motion.div>
+
 
       {/* Unified Login Form */}
       <motion.form

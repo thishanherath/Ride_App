@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Progress Slider Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/socket.io-client@4/dist/socket.io.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .demo-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .demo-header h1 {
+            font-size: 32px;
+            margin: 0 0 10px 0;
+        }
+        
+        .demo-header p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .progress-demo {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            margin-bottom: 30px;
+        }
+        
+        .demo-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .demo-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 8px 8px 0;
+            transition: all 0.2s ease;
+        }
+        
+        .demo-button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        .demo-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .demo-button.success {
+            background: #10b981;
+        }
+        
+        .demo-button.success:hover {
+            background: #059669;
+        }
+        
+        /* Progress Slider Styles */
+        .ride-progress-slider {
+            width: 100%;
+            padding: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .progress-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .progress-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111827;
+            margin: 0 0 6px 0;
+            line-height: 1.2;
+        }
+        
+        .progress-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .progress-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f97316, #10b981);
+            border-radius: 4px;
+            position: relative;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .progress-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #f97316, #10b981);
+            border-radius: 4px;
+            filter: blur(4px);
+            opacity: 0.6;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+        
+        .progress-percentage {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-indicators {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #9ca3af;
+        }
+        
+        .step-indicator.completed .step-circle {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .step-indicator.active .step-circle {
+            background: #f97316;
+            border-color: #f97316;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .step-number {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .step-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+            line-height: 1.3;
+        }
+        
+        .step-indicator.completed .step-label {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .step-indicator.active .step-label {
+            color: #f97316;
+            font-weight: 600;
+        }
+        
+        .searching-animation {
+            text-align: center;
+            padding: 16px 0;
+        }
+        
+        .searching-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f97316;
+            animation: searchingDots 1.4s infinite ease-in-out both;
+        }
+        
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        .driver-found-animation {
+            text-align: center;
+            padding: 16px 0;
+            animation: slideInUp 0.6s ease-out;
+        }
+        
+        .success-checkmark {
+            margin-bottom: 8px;
+            animation: bounceIn 0.8s ease-out;
+        }
+        
+        .success-message {
+            font-size: 14px;
+            color: #10b981;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .driver-info-display {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .driver-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .driver-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #10b981;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .driver-details h4 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+        
+        .driver-details p {
+            margin: 0 0 2px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .eta {
+            color: #059669 !important;
+            font-weight: 600 !important;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+            100% { transform: scale(1.05); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
+        
+        @keyframes searchingDots {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideInUp {
+            from { transform: translateY(15px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .status-log {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .status-log h4 {
+            margin: 0 0 12px 0;
+            color: #374151;
+        }
+        
+        .log-entry {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, createContext, useContext } = React;
+
+        // Mock Socket Context
+        const SocketDataContext = createContext();
+
+        const MockSocketProvider = ({ children }) => {
+            const [socket, setSocket] = useState(null);
+
+            useEffect(() => {
+                // Create a mock socket that simulates real socket behavior
+                const mockSocket = {
+                    listeners: {},
+                    on: function(event, callback) {
+                        if (!this.listeners[event]) {
+                            this.listeners[event] = [];
+                        }
+                        this.listeners[event].push(callback);
+                        console.log(`🔌 Socket listener added for: ${event}`);
+                    },
+                    off: function(event, callback) {
+                        if (this.listeners[event]) {
+                            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+                            console.log(`🔌 Socket listener removed for: ${event}`);
+                        }
+                    },
+                    emit: function(event, data) {
+                        console.log(`📡 Socket emit: ${event}`, data);
+                        if (this.listeners[event]) {
+                            this.listeners[event].forEach(callback => callback(data));
+                        }
+                    }
+                };
+
+                setSocket(mockSocket);
+            }, []);
+
+            return (
+                <SocketDataContext.Provider value={{ socket }}>
+                    {children}
+                </SocketDataContext.Provider>
+            );
+        };
+
+        // Simple Progress Slider Component
+        const RideProgressSlider = ({ rideId, onDriverAccepted }) => {
+            const { socket } = useContext(SocketDataContext);
+            const [progress, setProgress] = useState(20);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [isSearching, setIsSearching] = useState(false);
+            const [driverInfo, setDriverInfo] = useState(null);
+            const [showSuccess, setShowSuccess] = useState(false);
+
+            const steps = [
+                { label: 'Confirm Booking', completed: true },
+                { label: 'Finding Driver', completed: false },
+                { label: 'Driver Assigned', completed: false }
+            ];
+
+            const animateProgress = (targetProgress, duration = 1000) => {
+                const startProgress = progress;
+                const progressDiff = targetProgress - startProgress;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const animationProgress = Math.min(elapsed / duration, 1);
+                    const easeOutCubic = 1 - Math.pow(1 - animationProgress, 3);
+                    const currentProgress = startProgress + (progressDiff * easeOutCubic);
+                    
+                    setProgress(currentProgress);
+                    
+                    if (animationProgress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        setProgress(targetProgress);
+                    }
+                };
+
+                requestAnimationFrame(animate);
+            };
+
+            useEffect(() => {
+                if (!socket || !rideId) return;
+
+                console.log('🔌 Setting up socket listeners for ride:', rideId);
+
+                const handleRideConfirmed = (data) => {
+                    console.log('🎉 Ride confirmed event received:', data);
+                    
+                    if (data._id === rideId || data.rideId === rideId) {
+                        setIsSearching(false);
+                        setShowSuccess(true);
+                        setCurrentStep(2);
+                        animateProgress(100);
+
+                        const driverData = {
+                            name: data.captain ? 
+                                `${data.captain.fullname.firstname} ${data.captain.fullname.lastname}` : 
+                                'John Smith',
+                            vehicle: data.captain?.vehicle || { type: 'sedan', color: 'Blue', make: 'Toyota' },
+                            estimatedArrival: 5,
+                            rideId: data._id
+                        };
+
+                        setDriverInfo(driverData);
+
+                        if (onDriverAccepted) {
+                            onDriverAccepted(driverData);
+                        }
+
+                        setTimeout(() => setShowSuccess(false), 3000);
+                    }
+                };
+
+                socket.on('ride-confirmed', handleRideConfirmed);
+
+                // Start with searching state when ride ID is provided
+                if (rideId) {
+                    setIsSearching(true);
+                    setCurrentStep(1);
+                    animateProgress(50);
+                }
+
+                return () => {
+                    console.log('🧹 Cleaning up socket listeners for ride:', rideId);
+                    socket.off('ride-confirmed', handleRideConfirmed);
+                };
+            }, [socket, rideId, onDriverAccepted]);
+
+            const getTitle = () => {
+                if (driverInfo) return 'Driver Found!';
+                if (isSearching) return 'Finding your driver';
+                return 'We\'re connecting you with nearby drivers';
+            };
+
+            const getSubtitle = () => {
+                if (driverInfo) return `${driverInfo.name} is preparing to pick you up`;
+                if (isSearching) return 'Please wait while we find the best driver for you';
+                return 'Your ride request has been confirmed';
+            };
+
+            return (
+                <div className="ride-progress-slider">
+                    <div className="progress-header">
+                        <h3 className="progress-title">{getTitle()}</h3>
+                        <p className="progress-subtitle">{getSubtitle()}</p>
+                    </div>
+
+                    <div className="progress-container">
+                        <div className="progress-track">
+                            <div 
+                                className="progress-fill"
+                                style={{ width: `${progress}%` }}
+                            />
+                            <div 
+                                className="progress-glow"
+                                style={{ 
+                                    width: `${progress}%`,
+                                    opacity: progress > 0 ? 1 : 0
+                                }}
+                            />
+                        </div>
+                        <div className="progress-percentage">
+                            {Math.round(progress)}%
+                        </div>
+                    </div>
+
+                    <div className="step-indicators">
+                        {steps.map((step, index) => (
+                            <div 
+                                key={index}
+                                className={`step-indicator ${
+                                    index < currentStep ? 'completed' : ''
+                                } ${index === currentStep ? 'active' : ''}`}
+                            >
+                                <div className="step-circle">
+                                    {index < currentStep ? (
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                            <path 
+                                                d="M20 6L9 17l-5-5" 
+                                                stroke="currentColor" 
+                                                strokeWidth="2" 
+                                                strokeLinecap="round" 
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    ) : (
+                                        <span className="step-number">{index + 1}</span>
+                                    )}
+                                </div>
+                                <span className="step-label">{step.label}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {isSearching && (
+                        <div className="searching-animation">
+                            <div className="searching-dots">
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                            </div>
+                            <p>Searching for nearby drivers...</p>
+                        </div>
+                    )}
+
+                    {showSuccess && (
+                        <div className="driver-found-animation">
+                            <div className="success-checkmark">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" fill="#10B981"/>
+                                    <path 
+                                        d="m9 12 2 2 4-4" 
+                                        stroke="white" 
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round"
+                                    />
+                                </svg>
+                            </div>
+                            <p className="success-message">Driver assigned successfully!</p>
+                        </div>
+                    )}
+
+                    {driverInfo && !showSuccess && (
+                        <div className="driver-info-display">
+                            <div className="driver-card">
+                                <div className="driver-avatar">
+                                    {driverInfo.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div className="driver-details">
+                                    <h4>{driverInfo.name}</h4>
+                                    <p>Your driver is on the way</p>
+                                    <p className="eta">ETA: {driverInfo.estimatedArrival} minutes</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Main Demo Component
+        const SimpleProgressDemo = () => {
+            const { socket } = useContext(SocketDataContext);
+            const [currentRideId, setCurrentRideId] = useState(null);
+            const [statusLog, setStatusLog] = useState([]);
+
+            const addToLog = (message) => {
+                const timestamp = new Date().toLocaleTimeString();
+                setStatusLog(prev => [...prev, `${timestamp}: ${message}`]);
+            };
+
+            const startDemo = () => {
+                const rideId = `demo-ride-${Date.now()}`;
+                setCurrentRideId(rideId);
+                addToLog(`Started demo with ride ID: ${rideId}`);
+            };
+
+            const simulateDriverAcceptance = () => {
+                if (!currentRideId || !socket) return;
+
+                addToLog('Simulating driver acceptance...');
+                
+                // Simulate the exact socket event your backend sends
+                const mockRideData = {
+                    _id: currentRideId,
+                    rideId: currentRideId,
+                    captain: {
+                        fullname: {
+                            firstname: 'John',
+                            lastname: 'Smith'
+                        },
+                        vehicle: {
+                            type: 'sedan',
+                            color: 'Blue',
+                            make: 'Toyota'
+                        }
+                    },
+                    status: 'accepted'
+                };
+
+                // Emit the ride-confirmed event (same as your backend)
+                socket.emit('ride-confirmed', mockRideData);
+                addToLog('Driver acceptance event sent!');
+            };
+
+            const resetDemo = () => {
+                setCurrentRideId(null);
+                setStatusLog([]);
+                addToLog('Demo reset');
+            };
+
+            const handleDriverAccepted = (driverData) => {
+                addToLog(`Driver accepted: ${driverData.name}`);
+                console.log('Driver accepted callback:', driverData);
+            };
+
+            return (
+                <div className="demo-container">
+                    <div className="demo-header">
+                        <h1>Simple Progress Slider</h1>
+                        <p>Automatically updates when driver accepts - no manual refresh needed!</p>
+                    </div>
+
+                    <div className="progress-demo">
+                        <RideProgressSlider 
+                            rideId={currentRideId}
+                            onDriverAccepted={handleDriverAccepted}
+                        />
+                    </div>
+
+                    <div className="demo-controls">
+                        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#374151' }}>Demo Controls</h3>
+                        
+                        {!currentRideId ? (
+                            <button 
+                                className="demo-button success"
+                                onClick={startDemo}
+                            >
+                                Start Ride Demo
+                            </button>
+                        ) : (
+                            <>
+                                <button 
+                                    className="demo-button success"
+                                    onClick={simulateDriverAcceptance}
+                                >
+                                    Simulate Driver Acceptance
+                                </button>
+                                
+                                <button 
+                                    className="demo-button"
+                                    onClick={resetDemo}
+                                >
+                                    Reset Demo
+                                </button>
+                            </>
+                        )}
+
+                        <div style={{ marginTop: '20px', padding: '16px', background: '#f3f4f6', borderRadius: '8px', textAlign: 'left' }}>
+                            <h4 style={{ margin: '0 0 8px 0', color: '#374151' }}>How to integrate:</h4>
+                            <ol style={{ margin: 0, paddingLeft: '20px', color: '#6b7280', fontSize: '14px' }}>
+                                <li>Add the RideProgressSlider component to your ride booking screen</li>
+                                <li>Pass the rideId when ride is created</li>
+                                <li>Component automatically listens for 'ride-confirmed' socket events</li>
+                                <li>Progress bar fills to 100% when driver accepts</li>
+                                <li>No manual refresh needed!</li>
+                            </ol>
+                        </div>
+
+                        {statusLog.length > 0 && (
+                            <div className="status-log">
+                                <h4>Status Log</h4>
+                                {statusLog.map((entry, index) => (
+                                    <div key={index} className="log-entry">{entry}</div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // App with Socket Provider
+        const App = () => (
+            <MockSocketProvider>
+                <SimpleProgressDemo />
+            </MockSocketProvider>
+        );
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

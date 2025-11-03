@@ -19,17 +19,17 @@ const StatsCard = ({
   };
 
   return (
-    <Card className={`p-4 hover:shadow-md transition-shadow duration-200 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <Card className={`p-2 sm:p-4 hover:shadow-md transition-shadow duration-200 ${className}`}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{value}</p>
           {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-xs text-gray-500 mt-1 truncate">{subtitle}</p>
           )}
         </div>
         {icon && (
-          <div className={`p-3 rounded-xl ${colorClasses[color] || colorClasses.blue}`}>
+          <div className={`p-2 sm:p-3 rounded-xl ${colorClasses[color] || colorClasses.blue} flex-shrink-0`}>
             {icon}
           </div>
         )}

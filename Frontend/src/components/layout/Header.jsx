@@ -1,6 +1,6 @@
 import React from 'react';
 import { MenuIcon, BellIcon } from 'lucide-react';
-import Avatar from './Avatar';
+import ProfileAvatar from '../ProfileAvatar';
 
 const Header = ({ 
   title = 'QuickRide',
@@ -9,6 +9,7 @@ const Header = ({
   user = null,
   onMenuClick,
   onNotificationClick,
+  onProfileClick,
   className = '',
   ...props 
 }) => {
@@ -34,9 +35,12 @@ const Header = ({
             </button>
           )}
           
-          <h1 className="font-semibold text-gray-900 text-lg">
+          <button 
+            onClick={() => window.location.href = '/home'}
+            className="font-semibold text-gray-900 text-lg hover:text-orange-600 transition-colors duration-200 focus:outline-none focus:text-orange-600"
+          >
             {title}
-          </h1>
+          </button>
         </div>
 
         {/* Right Section */}
@@ -54,11 +58,12 @@ const Header = ({
           )}
           
           {user && (
-            <Avatar 
-              src={user.avatar} 
-              name={user.name}
+            <ProfileAvatar 
+              key={`header-avatar-${user.profilePicture || user._lastUpdated || user._id || 'default'}`}
+              user={user}
               size="sm" 
-              className="cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all duration-200"
+              onClick={onProfileClick}
+              className="hover:ring-2 hover:ring-orange-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           )}
         </div>

@@ -58,19 +58,27 @@ function Sidebar() {
   };
   return (
     <>
+      {/* Backdrop Overlay */}
+      {showSidebar && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-[9997] transition-opacity duration-300"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       <div
-        className="m-3 mt-4 absolute right-0 top-0 z-20 cursor-pointer bg-white p-1 rounded"
+        className={`${showSidebar ? 'fixed right-4 top-4' : 'm-3 mt-4 absolute right-0 top-0'} z-[9999] cursor-pointer bg-white p-2 rounded-full shadow-lg transition-all duration-300`}
         onClick={() => {
           setShowSidebar(!showSidebar);
         }}
       >
-        {showSidebar ? <X /> : <Menu />}
+        {showSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </div>
 
       {/* Sidebar Component */}
       <div
         className={`${showSidebar ? " left-0 " : " -left-[100%] "
-          } z-10 duration-300 absolute w-full h-dvh bottom-0 bg-white overflow-y-auto`}
+          } z-[9998] duration-300 fixed top-0 w-full h-full bg-white overflow-y-auto`}
       >
         {/* Header Section */}
         <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-6 text-white">
@@ -89,16 +97,10 @@ function Sidebar() {
               <div className="flex items-center gap-2 mt-1">
                 <User className="w-4 h-4" />
                 <span className="text-sm opacity-90">
-                  {newUser?.type === 'user' ? 'Rider' : 'Captain'}
+                  {newUser?.type === 'user' ? 'Rider' : 'Driver'}
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setShowSidebar(false)}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
@@ -232,8 +234,7 @@ function Sidebar() {
             <div
               onClick={() => {
                 console.log("Payment Methods clicked");
-                // For now, show an alert since payment functionality might not be fully implemented
-                alert("Payment Methods feature coming soon!");
+                window.location.href = '/user/payment';
                 setShowSidebar(false);
               }}
               className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors mb-2"

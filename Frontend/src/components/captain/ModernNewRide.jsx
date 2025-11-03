@@ -9,19 +9,18 @@ import {
   User
 } from 'lucide-react';
 import { Button, Card, Input } from '../ui';
+import { formatCurrency } from '../../utils/currency';
 
 const ModernNewRide = ({
   rideData,
-  otp,
-  setOtp,
   showBtn,
   showPanel,
   setShowPanel,
   showPreviousPanel,
   loading,
   acceptRide,
+  startRide,
   endRide,
-  verifyOTP,
   error,
 }) => {
   const ignoreRide = () => {
@@ -75,7 +74,7 @@ const ModernNewRide = ({
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-gray-900">₹{rideData?.fare}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(rideData?.fare)}</p>
             <p className="text-sm text-gray-500">{formatDistance(rideData?.distance)} km</p>
           </div>
         </div>
@@ -139,7 +138,7 @@ const ModernNewRide = ({
           <div className="flex items-center space-x-4 p-4">
             <CreditCard className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">₹{rideData.fare}</h3>
+              <h3 className="font-semibold text-gray-900">{formatCurrency(rideData.fare)}</h3>
               <p className="text-sm text-gray-600">Cash Payment</p>
             </div>
             <div className="text-right">
@@ -167,31 +166,14 @@ const ModernNewRide = ({
               Accept Ride
             </Button>
           </div>
-        ) : showBtn === 'otp' ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Enter OTP to start ride
-              </label>
-              <Input
-                type="number"
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                className="text-center text-lg font-mono"
-                error={error}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={verifyOTP}
-              loading={loading}
-              disabled={otp.length !== 6}
-            >
-              Start Ride
-            </Button>
-          </div>
+        ) : showBtn === 'start-ride' ? (
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={startRide}
+            loading={loading}
+          >
+            Start Ride
+          </Button>
         ) : (
           <Button
             className="w-full bg-green-600 hover:bg-green-700"

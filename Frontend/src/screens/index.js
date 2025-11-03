@@ -26,10 +26,29 @@ import ResetPassword from "./ResetPassword";
 import ForgotPassword from "./ForgotPassword";
 
 // Admin screens
-import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import AdminUsers from "./AdminUsers";
+import AdminCaptains from "./AdminCaptains";
+import AdminRides from "./AdminRides";
+import AdminAnalytics from "./AdminAnalytics";
+import AdminSettings from "./AdminSettings";
 import MapScreen from "./MapScreen";
+
+// Payment screens
+import PaymentMethods from "./PaymentMethods";
+import PaymentHistory from "./PaymentHistory";
+
+// Notification screens
+import Notifications from "./Notifications";
+
+// Message screens
+import Messages from "./Messages";
+
+// Rating screens
+import RateApp from "./RateApp";
+
+// Support screens
+import Support from "./Support";
 
 export {
   GetStarted,
@@ -51,8 +70,18 @@ export {
   VerifyEmail,
   ResetPassword,
   ForgotPassword,
-  AdminLogin,
+
   AdminDashboard,
   AdminUsers,
-  MapScreen
+  AdminCaptains,
+  AdminRides,
+  AdminAnalytics,
+  AdminSettings,
+  MapScreen,
+  PaymentMethods,
+  PaymentHistory,
+  Notifications,
+  Messages,
+  RateApp,
+  Support
 };

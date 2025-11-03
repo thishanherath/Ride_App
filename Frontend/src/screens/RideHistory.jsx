@@ -26,9 +26,10 @@ function RideHistory() {
   const { user } = useUser();
   const { captain } = useCaptain();
   
-  // Determine user type based on current context
-  const userType = captain ? 'captain' : 'user';
-  const currentUser = captain || user;
+  // Determine user type based on current context and localStorage
+  const userData = JSON.parse(localStorage.getItem("userData"));
+  const userType = userData?.type === 'captain' ? 'captain' : 'user';
+  const currentUser = userType === 'captain' ? captain : user;
   
   const [expandedSections, setExpandedSections] = useState({
     today: true,
@@ -120,7 +121,7 @@ function RideHistory() {
         {/* Empty State */}
         {!loading && !error && !hasRides && (
           <NoRidesEmpty 
-            onBookRide={() => navigation(userType === 'captain' ? '/captain-home' : '/user-home')}
+            onBookRide={() => navigation(userType === 'captain' ? '/captain/home' : '/home')}
             className="mt-20"
           />
         )}

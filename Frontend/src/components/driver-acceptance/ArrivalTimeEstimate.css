@@ -1,0 +1,329 @@
+/* ArrivalTimeEstimate Component Styles */
+
+.arrival-time-estimate {
+  --arrival-primary-color: #3B82F6;
+  --arrival-success-color: #22C55E;
+  --arrival-warning-color: #F59E0B;
+  --arrival-text-primary: #1F2937;
+  --arrival-text-secondary: #6B7280;
+  --arrival-text-muted: #9CA3AF;
+  --arrival-bg-light: #F8FAFC;
+  --arrival-border-light: #E5E7EB;
+  
+  position: relative;
+  background: var(--arrival-bg-light);
+  border: 1px solid var(--arrival-border-light);
+  transition: all 0.3s ease;
+}
+
+.arrival-time-estimate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Main Content Layout */
+.arrival-time-estimate__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.arrival-time-estimate__main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+/* Icon Container */
+.arrival-time-estimate__icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  transition: all 0.3s ease;
+}
+
+.arrival-time-estimate__icon {
+  width: 24px;
+  height: 24px;
+  color: var(--arrival-primary-color);
+  transition: all 0.3s ease;
+}
+
+.arrival-time-estimate__icon--arrived {
+  color: var(--arrival-success-color);
+  animation: pulse-success 2s infinite;
+}
+
+/* Text Content */
+.arrival-time-estimate__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.arrival-time-estimate__main-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--arrival-text-primary);
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.arrival-time-estimate__main-text--countdown {
+  animation: countdown-pulse 1s ease-in-out infinite alternate;
+}
+
+.arrival-time-estimate__sub-text {
+  font-size: 0.875rem;
+  color: var(--arrival-text-secondary);
+  line-height: 1.4;
+}
+
+/* Actions */
+.arrival-time-estimate__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arrival-time-estimate__refresh-button {
+  color: var(--arrival-text-secondary);
+  border-color: var(--arrival-border-light);
+}
+
+.arrival-time-estimate__refresh-button:hover {
+  color: var(--arrival-primary-color);
+  border-color: var(--arrival-primary-color);
+}
+
+.arrival-time-estimate__compact-refresh {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  color: var(--arrival-text-muted);
+}
+
+.arrival-time-estimate__compact-refresh:hover {
+  color: var(--arrival-primary-color);
+}
+
+/* Progress Indicator */
+.arrival-time-estimate__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.arrival-time-estimate__progress-bar {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.arrival-time-estimate__progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--arrival-primary-color), var(--arrival-warning-color));
+  transform: translateX(-100%);
+  animation: progress-countdown linear;
+}
+
+/* Footer */
+.arrival-time-estimate__footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--arrival-border-light);
+}
+
+.arrival-time-estimate__last-updated {
+  font-size: 0.75rem;
+  color: var(--arrival-text-muted);
+  font-style: italic;
+}
+
+/* Compact Variant */
+.arrival-time-estimate--compact {
+  padding: 1rem;
+}
+
+.arrival-time-estimate--compact .arrival-time-estimate__content {
+  gap: 0.75rem;
+}
+
+.arrival-time-estimate--compact .arrival-time-estimate__icon-container {
+  width: 36px;
+  height: 36px;
+}
+
+.arrival-time-estimate--compact .arrival-time-estimate__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.arrival-time-estimate--compact .arrival-time-estimate__main-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.arrival-time-estimate--compact .arrival-time-estimate__sub-text {
+  font-size: 0.75rem;
+}
+
+/* Arrived State */
+.arrival-time-estimate--arrived {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.arrival-time-estimate--arrived .arrival-time-estimate__icon-container {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.arrival-time-estimate--arrived .arrival-time-estimate__main-text {
+  color: var(--arrival-success-color);
+  font-weight: 800;
+}
+
+/* Animations */
+@keyframes pulse-success {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes countdown-pulse {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes progress-countdown {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+/* Loading State */
+.arrival-time-estimate__main-text:has(+ .arrival-time-estimate__sub-text:contains("Calculating")) {
+  color: var(--arrival-text-secondary);
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .arrival-time-estimate__main-text {
+    font-size: 1.25rem;
+  }
+  
+  .arrival-time-estimate--compact .arrival-time-estimate__main-text {
+    font-size: 1rem;
+  }
+  
+  .arrival-time-estimate__content {
+    gap: 0.75rem;
+  }
+  
+  .arrival-time-estimate__actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .arrival-time-estimate__main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .arrival-time-estimate__icon-container {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .arrival-time-estimate__main-text {
+    font-size: 1.125rem;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .arrival-time-estimate {
+    border-width: 2px;
+    border-color: var(--arrival-text-primary);
+  }
+  
+  .arrival-time-estimate__main-text {
+    font-weight: 800;
+  }
+  
+  .arrival-time-estimate__icon {
+    filter: contrast(1.5);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .arrival-time-estimate,
+  .arrival-time-estimate__icon,
+  .arrival-time-estimate__main-text {
+    transition: none;
+  }
+  
+  .arrival-time-estimate__main-text--countdown,
+  .arrival-time-estimate__icon--arrived {
+    animation: none;
+  }
+  
+  .arrival-time-estimate__progress-fill {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+/* Focus States for Accessibility */
+.arrival-time-estimate__refresh-button:focus,
+.arrival-time-estimate__compact-refresh:focus {
+  outline: 2px solid var(--arrival-primary-color);
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .arrival-time-estimate {
+    background: white;
+    border: 1px solid black;
+    box-shadow: none;
+  }
+  
+  .arrival-time-estimate__actions,
+  .arrival-time-estimate__compact-refresh,
+  .arrival-time-estimate__progress {
+    display: none;
+  }
+}
