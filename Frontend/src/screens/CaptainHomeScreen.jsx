@@ -439,7 +439,12 @@ function CaptainHomeScreen() {
     }
 
     socket.on("new-ride", (data) => {
-      Console.log("New Ride available:", data);
+      const timestamp = new Date().toLocaleTimeString();
+      Console.log(`🚨 REAL-TIME: New Ride received at ${timestamp}:`, data);
+      
+      // Visual confirmation this is real-time
+      alert(`🚨 REAL-TIME: New ride available at ${timestamp}!\nFrom: ${data.pickup}\nTo: ${data.destination}`);
+      
       setShowBtn("accept");
       setNewRide(data);
       setShowNewRidePanel(true);
