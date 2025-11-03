@@ -36,7 +36,7 @@ function Login() {
   useEffect(() => {
     const testConnection = async () => {
       try {
-        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+        const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
         console.log("Testing backend connection to:", serverUrl);
         
         const response = await axios.get(`${serverUrl}/`);
@@ -63,7 +63,7 @@ function Login() {
       setLoading(true);
       setResponseError("");
       setLoginStatus("");
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
       
       console.log("Attempting login with:", { email: data.email, serverUrl });
 
