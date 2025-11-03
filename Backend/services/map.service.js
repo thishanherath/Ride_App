@@ -140,6 +140,26 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) =>
   // radius in km
   
   try {
+    console.log(`🔍 Searching for captains near [${ltd}, ${lng}] within ${radius}km for vehicle type: ${vehicleType}`);
+    
+    // First, let's see all captains regardless of location and vehicle type
+    const allCaptains = await captainModel.find({});
+    console.log(`📊 Total captains in database: ${allCaptains.length}`);
+    
+    // Check captains with the right vehicle type
+    const captainsWithVehicleType = await captainModel.find({
+      "vehicle.type": vehicleType,
+    });
+    console.log(`🚗 Captains with vehicle type '${vehicleType}': ${captainsWithVehicleType.length}`);
+    
+    // Check captains with location data
+    const captainsWithLocation = await captainModel.find({
+      location: { $exists: true },
+      "location.coordinates": { $exists: true, $ne: [] }
+    });
+    console.log(`📍 Captains with location data: ${captainsWithLocation.length}`);
+    
+    // Now find captains in radius with correct vehicle type and active status
     const captains = await captainModel.find({
       location: {
         $geoWithin: {
@@ -147,9 +167,20 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) =>
         },
       },
       "vehicle.type": vehicleType,
+      status: "active", // Only active captains should receive rides
+      socketId: { $exists: true, $ne: null } // Only connected captains
     });
+    
+    console.log(`✅ Found ${captains.length} captains in radius with matching vehicle type`);
+    
+    // Log details of found captains
+    captains.forEach(captain => {
+      console.log(`👨‍✈️ Captain: ${captain.fullname.firstname} ${captain.fullname.lastname}, Vehicle: ${captain.vehicle.type}, Location: [${captain.location.coordinates}], SocketId: ${captain.socketId ? 'Connected' : 'Not Connected'}`);
+    });
+    
     return captains;
   } catch (error) {
+    console.error("❌ Error in getCaptainsInTheRadius:", error.message);
     throw new Error("Error in getting captain in radius: " + error.message);
   }
 };

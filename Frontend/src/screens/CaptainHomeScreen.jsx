@@ -450,6 +450,15 @@ function CaptainHomeScreen() {
       updateLocation(); // Reset to current location
       clearRideData();
     });
+
+    socket.on("ride-taken", (data) => {
+      Console.log("Ride taken by another driver", data);
+      // Hide the current ride if it matches the taken ride
+      if (newRide && newRide._id === data.rideId) {
+        clearRideData();
+        showAlert('Ride Taken', 'This ride has been accepted by another driver', 'info');
+      }
+    });
   }, [captain]);
 
   useEffect(() => {

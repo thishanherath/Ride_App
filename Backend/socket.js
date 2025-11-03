@@ -96,7 +96,8 @@ function initializeSocket(server) {
         } else if (userType === "captain") {
           await captainModel.findByIdAndUpdate(userId, { 
             socketId: socket.id,
-            lastOnline: new Date()
+            lastOnline: new Date(),
+            status: "active" // Set captain to active when they connect
           });
         }
 
@@ -360,7 +361,8 @@ function initializeSocket(server) {
             await captainModel.findByIdAndUpdate(userId, { 
               socketId: null,
               lastOnline: new Date(),
-              disconnectReason: reason
+              disconnectReason: reason,
+              status: "inactive" // Set captain to inactive when they disconnect
             });
           }
         }

@@ -80,17 +80,32 @@ module.exports.createRide = async (req, res) => {
           .findOne({ _id: ride._id })
           .populate("user");
 
+        console.log(`🔍 Found ${captainsInRadius.length} captains in radius for vehicle type: ${vehicleType}`);
         console.log(
           captainsInRadius.map(
-            (ride) => `${ride.fullname.firstname} ${ride.fullname.lastname} `
+            (captain) => `${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId ? 'Connected' : 'Not Connected'})`
           )
         );
+        
+        let notificationsSent = 0;
         captainsInRadius.map((captain) => {
-          sendMessageToSocketId(captain.socketId, {
-            event: "new-ride",
-            data: rideWithUser,
-          });
+          if (captain.socketId) {
+            console.log(`📡 Sending new-ride to captain: ${captain.fullname.firstname} ${captain.fullname.lastname} (${captain.socketId})`);
+            sendMessageToSocketId(captain.socketId, {
+              event: "new-ride",
+              data: rideWithUser,
+            });
+            notificationsSent++;
+          } else {
+            console.log(`❌ Captain ${captain.fullname.firstname} ${captain.fullname.lastname} has no socketId`);
+          }
         });
+        
+        console.log(`✅ Sent new-ride notifications to ${notificationsSent} captains`);
+        
+        if (notificationsSent === 0) {
+          console.log(`⚠️ No captains were notified! Check if captains are online and have correct vehicle type.`);
+        }
       } catch (e) {
         console.error("Background task failed:", e.message);
       }
@@ -203,8 +218,27 @@ module.exports.confirmRide = async (req, res) => {
       console.log('📡 User notified via socket:', ride.user.socketId);
     }
 
-    // TODO: Remove ride from other captains
-    // Implement logic here, maybe emit an event or update captain listings
+    // Remove ride from other captains' available rides
+    try {
+      const allActiveCaptains = await captainModel.find({
+        status: "active",
+        socketId: { $exists: true, $ne: null },
+        _id: { $ne: req.captain._id } // Exclude the captain who accepted
+      });
+
+      console.log(`🗑️ Removing ride from ${allActiveCaptains.length} other captains`);
+      
+      allActiveCaptains.forEach(captain => {
+        sendMessageToSocketId(captain.socketId, {
+          event: "ride-taken",
+          data: { rideId: ride._id, message: "This ride has been taken by another driver" }
+        });
+      });
+      
+      console.log('✅ Ride removal notifications sent to other captains');
+    } catch (error) {
+      console.error('❌ Error notifying other captains:', error.message);
+    }
 
     return res.status(200).json(ride);
   } catch (err) {

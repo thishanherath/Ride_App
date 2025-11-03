@@ -95,6 +95,10 @@ module.exports.loginCaptain = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Invalid email or password" });
   }
 
+  // Set captain status to active when they login
+  captain.status = "active";
+  await captain.save();
+
   const token = captain.generateAuthToken();
   res.cookie("token", token);
   res.json({ message: "Logged in successfully", token, captain });
@@ -127,6 +131,13 @@ module.exports.updateCaptainProfile = asyncHandler(async (req, res) => {
 module.exports.logoutCaptain = asyncHandler(async (req, res) => {
   res.clearCookie("token");
   const token = req.cookies.token || req.headers.token;
+
+  // Set captain status to inactive when they logout
+  if (req.captain) {
+    req.captain.status = "inactive";
+    req.captain.socketId = null; // Clear socket ID on logout
+    await req.captain.save();
+  }
 
   await blacklistTokenModel.create({ token });
 
