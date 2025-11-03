@@ -293,26 +293,38 @@ function UserHomeScreen() {
         vehicleType: selectedVehicle,
         paymentMethod: paymentMethod || { type: 'cash', name: 'Cash Payment' },
         fare: fare,
-        confirmedRideData: confirmedRideData,
+        confirmedRideData: null, // Will be set when driver accepts
         _id: response.data._id,
+        status: 'searching',
+        createdAt: new Date().toISOString()
       };
       localStorage.setItem("rideDetails", JSON.stringify(rideData));
       setLoading(false);
       setRideCreated(true);
 
-      // Set ride status to searching (maps to backend 'pending')
+      // Set ride status to searching (Step 1 - maps to backend 'pending')
       setRideStatus('searching');
+      console.log("📊 Ride status set to: searching");
 
-      // Show the full ride process flow
+      // Hide other panels and show the full ride process flow
+      setShowFindTripPanel(false);
+      setShowSelectVehiclePanel(false);
+      setShowRideDetailsPanel(false);
       setShowRideProcess(true);
 
-      // Show success message
       console.log('🎉 Ride created successfully! Looking for drivers...');
+      console.log('🔍 Ride ID:', response.data._id);
+
+      // Join the ride room for real-time updates
+      if (response.data._id) {
+        socket.emit("join-room", response.data._id);
+        console.log("🏠 Joined ride room:", response.data._id);
+      }
 
       // Automatically cancel the ride after 5 minutes (300000ms) if no driver accepts
       const timeoutDuration = import.meta.env.VITE_RIDE_TIMEOUT || 300000; // 5 minutes fallback
       rideTimeout.current = setTimeout(() => {
-        console.log('🕐 Ride timeout reached, cancelling ride automatically');
+        console.log('🕐 Ride timeout reached (5 minutes), cancelling ride automatically');
         cancelRide();
       }, timeoutDuration);
 
@@ -494,67 +506,176 @@ function UserHomeScreen() {
     }
 
     socket.on("ride-confirmed", (data) => {
-      Console.log("Clearing Timeout", rideTimeout);
-      clearTimeout(rideTimeout.current);
-      Console.log("Cleared Timeout");
-      Console.log("Ride Confirmed");
-      Console.log(data.captain.location);
+      console.log("🎉 Ride confirmed event received:", data);
+      
+      // Clear the ride timeout
+      if (rideTimeout.current) {
+        clearTimeout(rideTimeout.current);
+        rideTimeout.current = null;
+        console.log("✅ Ride timeout cleared");
+      }
 
-      // Update ride status to accepted
+      // Update ride status to accepted (Step 2)
       setRideStatus('accepted');
+      console.log("📊 Ride status updated to: accepted");
 
       // Keep showing the ride process flow
       setShowRideProcess(true);
 
-      // Set driver information with enhanced details
-      setDriverInfo({
+      // Hide other panels
+      setShowFindTripPanel(false);
+      setShowSelectVehiclePanel(false);
+      setShowRideDetailsPanel(false);
+
+      // Set comprehensive driver information
+      const driverData = {
         _id: data.captain._id,
         fullname: data.captain.fullname,
         phone: data.captain.phone,
         vehicle: {
           type: data.captain.vehicle?.type || data.vehicle || 'car',
-          plate: data.captain.vehicle?.plate || 'N/A',
+          plate: data.captain.vehicle?.number || data.captain.vehicle?.plate || 'N/A',
           color: data.captain.vehicle?.color || 'Unknown',
-          model: data.captain.vehicle?.model || 'Unknown'
+          model: data.captain.vehicle?.model || 'Unknown',
+          capacity: data.captain.vehicle?.capacity || 4
         },
         rating: data.captain.rating?.average || 4.5,
         location: data.captain.location,
         distanceToPickup: data.distanceToPickup || 5,
-      });
+        estimatedArrival: data.estimatedArrival || 10
+      };
+      
+      setDriverInfo(driverData);
+      console.log("👨‍✈️ Driver info set:", driverData);
 
       // Update captain location for real-time tracking
       if (data.captain.location && data.captain.location.coordinates) {
-        setCaptainLocation({
+        const captainLoc = {
           latitude: data.captain.location.coordinates[1],
           longitude: data.captain.location.coordinates[0]
-        });
+        };
+        setCaptainLocation(captainLoc);
+        console.log("📍 Captain location updated:", captainLoc);
+
+        // Update map to show route from captain to pickup
+        setMapLocation(
+          `https://www.google.com/maps?q=${captainLoc.latitude},${captainLoc.longitude} to ${pickupLocation}&output=embed`
+        );
       }
 
-      setMapLocation(
-        `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
-      );
+      // Store confirmed ride data
       setConfirmedRideData(data);
+      
+      // Update localStorage with confirmed ride
+      const updatedRideData = {
+        ...JSON.parse(localStorage.getItem("rideDetails") || "{}"),
+        confirmedRideData: data,
+        status: 'accepted',
+        driverInfo: driverData
+      };
+      localStorage.setItem("rideDetails", JSON.stringify(updatedRideData));
 
-      // Update ride status to accepted
-      setRideStatus('accepted');
-
-      // Show success notification
-      console.log("🎉 Ride confirmed! Captain is on the way.");
+      console.log("🎉 Ride confirmed successfully! Driver is on the way.");
     });
 
     socket.on("ride-cancelled-by-captain", (data) => {
-      Console.log("Ride cancelled by captain", data);
+      console.log("❌ Ride cancelled by captain event received:", data);
+
+      // Clear any existing timeout
+      if (rideTimeout.current) {
+        clearTimeout(rideTimeout.current);
+        rideTimeout.current = null;
+      }
+
+      // Update ride status to cancelled (Step 5)
+      setRideStatus('cancelled');
+      console.log("📊 Ride status updated to: cancelled");
+
+      // Keep showing the ride process flow to display cancellation
+      setShowRideProcess(true);
+
+      // Update localStorage
+      const updatedRideData = {
+        ...JSON.parse(localStorage.getItem("rideDetails") || "{}"),
+        status: 'cancelled',
+        cancelledAt: new Date().toISOString(),
+        cancelReason: data.reason || 'Cancelled by driver'
+      };
+      localStorage.setItem("rideDetails", JSON.stringify(updatedRideData));
+
+      // Show cancellation status for 4 seconds then reset
+      setTimeout(() => {
+        console.log("🔄 Resetting UI after ride cancellation");
+        
+        // Hide process flow
+        setShowRideProcess(false);
+        
+        // Reset all states
+        setRideStatus('idle');
+        setDriverInfo(null);
+        setConfirmedRideData(null);
+        setShowRideDetailsPanel(false);
+        setShowSelectVehiclePanel(false);
+        setShowFindTripPanel(true);
+        setDefaults();
+
+        // Clear stored data
+        localStorage.removeItem("rideDetails");
+        localStorage.removeItem("panelDetails");
+
+        // Refresh location
+        updateLocation();
+      }, 4000); // 4 seconds to show cancellation
+
+      console.log("❌ Ride cancelled by driver:", data.reason || 'No reason provided');
+    });
+
+    socket.on("captain-location-update", (data) => {
+      console.log("📍 Captain location update received:", data);
+
+      // Update captain location for real-time tracking
+      if (data.captainLocation) {
+        const newCaptainLocation = {
+          latitude: data.captainLocation.latitude,
+          longitude: data.captainLocation.longitude
+        };
+        setCaptainLocation(newCaptainLocation);
+
+        // Update map to show captain's current location and route to pickup
+        if (rideStatus === 'accepted') {
+          setMapLocation(
+            `https://www.google.com/maps?q=${newCaptainLocation.latitude},${newCaptainLocation.longitude} to ${pickupLocation}&output=embed`
+          );
+          console.log("🗺️ Map updated with captain's location");
+        }
+      }
+    });
+
+    // Handle ride cancellation (general)
+    socket.on("ride-cancelled", (data) => {
+      console.log("❌ Ride cancelled event received:", data);
+
+      // Clear any existing timeout
+      if (rideTimeout.current) {
+        clearTimeout(rideTimeout.current);
+        rideTimeout.current = null;
+      }
 
       // Update ride status to cancelled
       setRideStatus('cancelled');
+      console.log("📊 Ride status updated to: cancelled");
 
-      // Show cancellation for 3 seconds then hide process flow
+      // Keep showing the ride process flow to display cancellation
+      setShowRideProcess(true);
+
+      // Show cancellation status for 3 seconds then reset
       setTimeout(() => {
+        console.log("🔄 Resetting UI after ride cancellation");
+        
+        // Hide process flow
         setShowRideProcess(false);
-      }, 3000);
-
-      // Reset after showing cancellation status
-      setTimeout(() => {
+        
+        // Reset all states
         setRideStatus('idle');
         setDriverInfo(null);
         setConfirmedRideData(null);
@@ -571,59 +692,85 @@ function UserHomeScreen() {
         updateLocation();
       }, 3000);
 
-      // Show notification
-      console.log("❌ Ride cancelled by captain:", data.reason);
+      console.log("❌ Ride cancelled:", data.reason || 'Ride was cancelled');
     });
 
-    socket.on("captain-location-update", (data) => {
-      Console.log("Captain location update", data);
+    // Handle connection errors
+    socket.on("connect_error", (error) => {
+      console.error("🔌 Socket connection error:", error);
+    });
 
-      // Update captain location for real-time tracking
-      if (data.captainLocation) {
-        setCaptainLocation({
-          latitude: data.captainLocation.latitude,
-          longitude: data.captainLocation.longitude
+    socket.on("disconnect", (reason) => {
+      console.warn("🔌 Socket disconnected:", reason);
+    });
+
+    socket.on("reconnect", (attemptNumber) => {
+      console.log("🔌 Socket reconnected after", attemptNumber, "attempts");
+      
+      // Rejoin room if we have an active ride
+      if (user._id) {
+        socket.emit("join", {
+          userId: user._id,
+          userType: "user",
         });
-
-        // Update map to show captain's current location and route to pickup
-        if (rideStatus === 'accepted') {
-          setMapLocation(
-            `https://www.google.com/maps?q=${data.captainLocation.latitude},${data.captainLocation.longitude} to ${pickupLocation}&output=embed`
-          );
-        }
+      }
+      
+      if (confirmedRideData?._id) {
+        socket.emit("join-room", confirmedRideData._id);
       }
     });
 
     socket.on("ride-started", (data) => {
-      Console.log("Ride started");
+      console.log("🚀 Ride started event received:", data);
 
-      // Update ride status to ongoing
+      // Update ride status to ongoing (Step 3)
       setRideStatus('ongoing');
+      console.log("📊 Ride status updated to: ongoing");
 
       // Keep showing the ride process flow
       setShowRideProcess(true);
 
+      // Update map to show route from pickup to destination
       setMapLocation(
         `https://www.google.com/maps?q=${data.pickup} to ${data.destination}&output=embed`
       );
 
-      // Show notification
-      console.log("🚀 Ride started! You're on your way.");
+      // Update localStorage
+      const updatedRideData = {
+        ...JSON.parse(localStorage.getItem("rideDetails") || "{}"),
+        status: 'ongoing'
+      };
+      localStorage.setItem("rideDetails", JSON.stringify(updatedRideData));
+
+      console.log("🚀 Ride started! You're on your way to your destination.");
     });
 
     socket.on("ride-ended", (data) => {
-      Console.log("Ride Ended");
+      console.log("✅ Ride ended event received:", data);
 
-      // Update ride status to completed
+      // Update ride status to completed (Step 4)
       setRideStatus('completed');
+      console.log("📊 Ride status updated to: completed");
 
-      // Show completion for 3 seconds then hide process flow
+      // Keep showing the ride process flow to display completion
+      setShowRideProcess(true);
+
+      // Update localStorage
+      const updatedRideData = {
+        ...JSON.parse(localStorage.getItem("rideDetails") || "{}"),
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      };
+      localStorage.setItem("rideDetails", JSON.stringify(updatedRideData));
+
+      // Show completion status for 5 seconds then reset
       setTimeout(() => {
+        console.log("🔄 Resetting UI after ride completion");
+        
+        // Hide process flow
         setShowRideProcess(false);
-      }, 3000);
-
-      // Reset UI after a delay to show completion status
-      setTimeout(() => {
+        
+        // Reset all states
         setRideStatus('idle');
         setDriverInfo(null);
         setConfirmedRideData(null);
@@ -638,9 +785,9 @@ function UserHomeScreen() {
 
         // Refresh location after ride ends
         updateLocation();
-      }, 3000);
+      }, 5000); // 5 seconds to show completion
 
-      console.log("✅ Ride completed successfully!");
+      console.log("✅ Ride completed successfully! Thank you for riding with us.");
     });
   }, [user]);
 

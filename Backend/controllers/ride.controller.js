@@ -4,6 +4,7 @@ const mapService = require("../services/map.service");
 const { sendMessageToSocketId } = require("../socket");
 const rideModel = require("../models/ride.model");
 const userModel = require("../models/user.model");
+const captainModel = require("../models/captain.model");
 
 module.exports.chatDetails = async (req, res) => {
   const { id } = req.params;
