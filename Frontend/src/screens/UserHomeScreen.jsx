@@ -497,53 +497,84 @@ function UserHomeScreen() {
       });
     }
 
-    socket.on("ride-confirmed", (data) => {
-      Console.log("Clearing Timeout", rideTimeout);
-      clearTimeout(rideTimeout.current);
-      Console.log("Cleared Timeout");
-      Console.log("Ride Confirmed");
-      Console.log(data.captain.location);
+    // Enhanced Step 2: Driver Acceptance Handler
+    socket.on("ride-accepted", (data) => {
+      console.log("🎯 PASSENGER: Received enhanced ride-accepted event (Step 2)!", data);
+      
+      // Clear the ride timeout
+      if (rideTimeout.current) {
+        clearTimeout(rideTimeout.current);
+        rideTimeout.current = null;
+        console.log("⏰ Cleared ride timeout - driver found!");
+      }
 
-      // Update ride status to accepted
+      // Update ride status to accepted (Step 2)
       setRideStatus('accepted');
-
-      // Keep showing the ride process flow
       setShowRideProcess(true);
 
-      // Set driver information with enhanced details
-      setDriverInfo({
-        _id: data.captain._id,
-        fullname: data.captain.fullname,
-        phone: data.captain.phone,
+      // Set enhanced driver information from Step 2 data
+      const enhancedDriverInfo = {
+        _id: data.driverInfo._id,
+        fullname: data.driverInfo.fullname,
+        phone: data.driverInfo.phone,
         vehicle: {
-          type: data.captain.vehicle?.type || data.vehicle || 'car',
-          plate: data.captain.vehicle?.plate || 'N/A',
-          color: data.captain.vehicle?.color || 'Unknown',
-          model: data.captain.vehicle?.model || 'Unknown'
+          type: data.driverInfo.vehicle?.type || data.ride?.vehicle || 'car',
+          plate: data.driverInfo.vehicle?.plate || 'N/A',
+          color: data.driverInfo.vehicle?.color || 'Unknown',
+          model: data.driverInfo.vehicle?.model || 'Unknown'
         },
-        rating: data.captain.rating?.average || 4.5,
-        location: data.captain.location,
-        distanceToPickup: data.distanceToPickup || 5,
-      });
+        rating: data.driverInfo.rating || 4.5,
+        estimatedArrival: data.driverInfo.estimatedArrival || data.estimatedPickupTime || 8,
+        socketId: data.driverInfo.socketId
+      };
 
-      // Update captain location for real-time tracking
-      if (data.captain.location && data.captain.location.coordinates) {
-        setCaptainLocation({
-          latitude: data.captain.location.coordinates[1],
-          longitude: data.captain.location.coordinates[0]
+      setDriverInfo(enhancedDriverInfo);
+      setConfirmedRideData(data.ride);
+
+      // Show Step 2 success notification with driver details
+      const driverName = `${data.driverInfo.fullname.firstname} ${data.driverInfo.fullname.lastname}`;
+      console.log(`🎉 Step 2 Complete: ${driverName} is on the way! ETA: ${enhancedDriverInfo.estimatedArrival} minutes`);
+      
+      // Show browser notification if permission granted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Driver Found!', {
+          body: `${driverName} is on the way to pick you up. ETA: ${enhancedDriverInfo.estimatedArrival} minutes`,
+          icon: '/driver-icon.png',
+          tag: 'driver-assigned'
         });
       }
 
-      setMapLocation(
-        `https://www.google.com/maps?q=${data.captain.location.coordinates[1]},${data.captain.location.coordinates[0]} to ${pickupLocation}&output=embed`
-      );
-      setConfirmedRideData(data);
+      // Update map to show route from driver to pickup
+      if (data.driverInfo.location) {
+        setMapLocation(
+          `https://www.google.com/maps?q=${data.driverInfo.location.latitude || 0},${data.driverInfo.location.longitude || 0} to ${pickupLocation}&output=embed`
+        );
+      }
+    });
 
-      // Update ride status to accepted
-      setRideStatus('accepted');
+    // Fallback handler for legacy ride-confirmed events
+    socket.on("ride-confirmed", (data) => {
+      console.log("🔄 PASSENGER: Received legacy ride-confirmed event, converting to Step 2 format");
+      
+      // Convert legacy format to new Step 2 format
+      const convertedData = {
+        driverInfo: {
+          _id: data.captain._id,
+          fullname: data.captain.fullname,
+          phone: data.captain.phone,
+          vehicle: data.captain.vehicle,
+          rating: data.captain.rating?.average || 4.5,
+          estimatedArrival: 8, // Default ETA
+          location: data.captain.location
+        },
+        ride: data,
+        step: 2,
+        title: 'Driver Found!',
+        message: `${data.captain.fullname.firstname} is on the way to pick you up`
+      };
 
-      // Show success notification
-      console.log("🎉 Ride confirmed! Captain is on the way.");
+      // Trigger the enhanced handler
+      socket.emit('ride-accepted', convertedData);
     });
 
     socket.on("ride-cancelled-by-captain", (data) => {
