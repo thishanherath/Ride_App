@@ -334,38 +334,6 @@ function initializeSocket(server) {
       }
     });
 
-    // State recovery handler
-    socket.on("get-ride-status", async (data) => {
-      try {
-        const { userId } = data;
-        
-        // Find active ride for this user
-        const activeRide = await rideModel.findOne({
-          user: userId,
-          status: { $in: ['pending', 'accepted', 'ongoing'] }
-        }).populate('captain').populate('user');
-
-        if (activeRide) {
-          console.log(`🔄 Sending ride state recovery for user ${userId}`);
-          
-          // Send appropriate event based on current status
-          switch (activeRide.status) {
-            case 'accepted':
-              socket.emit("ride-confirmed", activeRide);
-              break;
-            case 'ongoing':
-              socket.emit("ride-started", activeRide);
-              break;
-            default:
-              // Ride is still pending, no action needed
-              break;
-          }
-        }
-      } catch (error) {
-        console.error("Error in state recovery:", error.message);
-      }
-    });
-
     // Enhanced disconnect handling with cleanup
     socket.on("disconnect", async (reason) => {
       console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);

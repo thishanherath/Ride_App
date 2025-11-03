@@ -309,10 +309,6 @@ function UserHomeScreen() {
       // Show success message with timestamp for verification
       const timestamp = new Date().toLocaleTimeString();
       console.log(`🎉 REAL-TIME TEST: Ride created at ${timestamp} - Looking for drivers...`);
-      console.log(`📊 Current state: rideStatus=${rideStatus}, showRideProcess=${showRideProcess}`);
-
-      // Store ride creation timestamp for debugging
-      localStorage.setItem("rideCreatedAt", timestamp);
 
       // Add visual indicator that this is real-time
       alert(`✅ REAL-TIME: Ride booked at ${timestamp}\nCheck backend console for driver notifications!`);
@@ -499,34 +495,7 @@ function UserHomeScreen() {
         userId: user._id,
         userType: "user",
       });
-
-      // Add heartbeat to keep connection alive
-      const heartbeat = setInterval(() => {
-        if (socket.connected) {
-          socket.emit("ping");
-        } else {
-          console.warn('⚠️ Socket disconnected, attempting to reconnect...');
-          socket.connect();
-        }
-      }, 30000); // Every 30 seconds
-
-      // Cleanup function
-      return () => {
-        clearInterval(heartbeat);
-      };
     }
-
-    // Cleanup function to remove event listeners
-    return () => {
-      socket.off("ride-confirmed");
-      socket.off("ride-cancelled-by-captain");
-      socket.off("captain-location-update");
-      socket.off("ride-started");
-      socket.off("ride-ended");
-      socket.off("ride-status-changed");
-      socket.off("join-success");
-      socket.off("join-error");
-    };
 
     socket.on("ride-confirmed", (data) => {
       Console.log("Clearing Timeout", rideTimeout);
@@ -534,18 +503,6 @@ function UserHomeScreen() {
       Console.log("Cleared Timeout");
       Console.log("Ride Confirmed");
       Console.log(data.captain.location);
-
-      // Validate we're in the correct state
-      if (rideStatus !== 'searching') {
-        console.warn('⚠️ Received ride-confirmed but not in searching state:', rideStatus);
-        return;
-      }
-
-      // Validate required data
-      if (!data.captain || !data.captain._id) {
-        console.error('❌ Invalid ride-confirmed data:', data);
-        return;
-      }
 
       // Update ride status to accepted
       setRideStatus('accepted');
@@ -755,14 +712,6 @@ function UserHomeScreen() {
     // Socket connection verification
     socket.on("join-success", (data) => {
       console.log("✅ Socket connected successfully:", data);
-
-      // Check if we have an active ride that needs state recovery
-      const storedRideDetails = localStorage.getItem("rideDetails");
-      if (storedRideDetails && rideStatus !== 'idle') {
-        console.log('🔄 Recovering ride state after reconnection');
-        // Request current ride status from server
-        socket.emit("get-ride-status", { userId: user._id });
-      }
     });
 
     socket.on("join-error", (data) => {

@@ -438,21 +438,6 @@ function CaptainHomeScreen() {
         console.error("❌ Captain socket connection failed:", data);
       });
 
-      // Add heartbeat for captain
-      const captainHeartbeat = setInterval(() => {
-        if (socket.connected) {
-          socket.emit("ping");
-        } else {
-          console.warn('⚠️ Captain socket disconnected, attempting to reconnect...');
-          socket.connect();
-        }
-      }, 30000);
-
-      // Cleanup heartbeat
-      return () => {
-        clearInterval(captainHeartbeat);
-      };
-
       // Get current location when captain logs in
       updateLocation();
       
