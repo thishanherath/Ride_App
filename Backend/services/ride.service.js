@@ -118,7 +118,8 @@ module.exports.confirmRide = async ({ rideId, captain }) => {
 
     // Check if ride is still pending
     if (ride.status !== "pending") {
-      throw new Error("Ride is no longer available for acceptance");
+      console.log(`❌ Ride ${rideId} status is ${ride.status}, not pending`);
+      throw new Error(`Ride is no longer available for acceptance. Current status: ${ride.status}`);
     }
 
     // Update captain assignment

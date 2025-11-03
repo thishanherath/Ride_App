@@ -216,13 +216,22 @@ module.exports.confirmRide = async (req, res) => {
       otp: ride.otp
     });
 
-    // Notify user via socket
+    // Notify user via socket with retry logic
     if (ride.user.socketId) {
-      sendMessageToSocketId(ride.user.socketId, {
+      const success = sendMessageToSocketId(ride.user.socketId, {
         event: "ride-confirmed",
         data: ride,
+        critical: true // Mark as critical for retry logic
       });
-      console.log('📡 User notified via socket:', ride.user.socketId);
+      
+      if (success) {
+        console.log('✅ User notified via socket:', ride.user.socketId);
+      } else {
+        console.error('❌ Failed to notify user via socket:', ride.user.socketId);
+        // Could implement fallback notification here (SMS, push notification, etc.)
+      }
+    } else {
+      console.error('❌ User has no socketId for ride confirmation');
     }
 
     // Remove ride from other captains' available rides
