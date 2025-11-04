@@ -116,6 +116,12 @@ router.post('/captain/location',
 
 */
 
+// Get ride details for payment
+router.get('/details/:rideId',
+    authMiddleware.authUser,
+    rideController.getRideDetails
+);
+
 // Get user's ride history
 router.get('/user/history',
     authMiddleware.authUser,

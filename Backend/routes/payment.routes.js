@@ -102,6 +102,20 @@ router.get(
 );
 
 /**
+ * @route   GET /api/payment/ride/:rideId
+ * @desc    Get payment by ride ID
+ * @access  Private (User)
+ */
+router.get(
+  "/ride/:rideId",
+  authMiddleware.authUser,
+  param("rideId")
+    .isMongoId()
+    .withMessage("Valid ride ID is required"),
+  paymentController.getPaymentByRide
+);
+
+/**
  * @route   GET /api/payment/history
  * @desc    Get user payment history
  * @access  Private (User)

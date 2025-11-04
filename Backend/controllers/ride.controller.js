@@ -753,3 +753,80 @@ module.exports.endRide = async (req, res) => {
     });
   }
 };
+
+// Get ride details for payment
+module.exports.getRideDetails = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    const user = req.user;
+
+    console.log(`🔍 Fetching ride details for payment: ${rideId} by user: ${user._id}`);
+
+    // Find the ride and populate related data
+    const ride = await rideModel
+      .findOne({ 
+        _id: rideId,
+        user: user._id // Ensure user can only access their own rides
+      })
+      .populate('captain', 'fullname phone vehicle')
+      .populate('user', 'fullname phone email');
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ride not found or access denied'
+      });
+    }
+
+    console.log(`✅ Ride details found:`, {
+      rideId: ride._id,
+      fare: ride.fare,
+      status: ride.status,
+      paymentMethod: ride.paymentMethod,
+      pickup: ride.pickup.substring(0, 50) + '...',
+      destination: ride.destination.substring(0, 50) + '...'
+    });
+
+    // Format the response with all necessary payment data
+    const rideDetailsResponse = {
+      _id: ride._id,
+      fare: ride.fare,
+      pickup: ride.pickup,
+      destination: ride.destination,
+      vehicle: ride.vehicle,
+      status: ride.status,
+      paymentMethod: ride.paymentMethod,
+      distance: ride.distance,
+      duration: ride.duration,
+      actualDuration: ride.actualDuration,
+      createdAt: ride.createdAt,
+      completedAt: ride.completedAt,
+      captain: ride.captain ? {
+        _id: ride.captain._id,
+        fullname: ride.captain.fullname,
+        phone: ride.captain.phone,
+        vehicle: ride.captain.vehicle
+      } : null,
+      user: {
+        _id: ride.user._id,
+        fullname: ride.user.fullname,
+        phone: ride.user.phone,
+        email: ride.user.email
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      ride: rideDetailsResponse,
+      message: 'Ride details retrieved successfully'
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching ride details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch ride details",
+      error: error.message
+    });
+  }
+};

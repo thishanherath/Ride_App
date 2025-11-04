@@ -347,6 +347,55 @@ module.exports.getPaymentStatus = async (req, res) => {
 };
 
 /**
+ * Get payment by ride ID
+ */
+module.exports.getPaymentByRide = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    
+    // Find payment record for this ride
+    const payment = await paymentModel.findOne({
+      rideId,
+      userId: req.user._id
+    }).populate('rideId', 'pickup destination fare status');
+    
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'No payment found for this ride'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      payment: {
+        id: payment._id,
+        paymentId: payment.paymentId,
+        method: payment.method,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        processingFee: payment.processingFee,
+        netAmount: payment.netAmount,
+        createdAt: payment.createdAt,
+        completedAt: payment.completedAt,
+        gatewayData: payment.gatewayData,
+        ride: payment.rideId
+      },
+      message: 'Payment retrieved successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting payment by ride:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get payment',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get user payment history
  */
 module.exports.getPaymentHistory = async (req, res) => {
