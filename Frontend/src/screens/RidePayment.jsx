@@ -33,35 +33,112 @@ const RidePayment = () => {
   const [fetchingRide, setFetchingRide] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState(null);
   const [existingPayment, setExistingPayment] = useState(null);
+  const [paymentCalculated, setPaymentCalculated] = useState(false);
 
-  // Get ride ID from navigation state (this is the most reliable data)
+  // Payment form state
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [cardholderName, setCardholderName] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+
+  // Get ride ID from navigation state - handle different data structures
   const rideData = location.state?.rideData || {};
-  const rideId = rideData.rideId;
+  const rideId = rideData.rideId || rideData._id || location.state?.rideId;
+
+  // Also check URL parameters as fallback
+  const urlParams = new URLSearchParams(location.search);
+  const urlRideId = urlParams.get('rideId');
+  const finalRideId = rideId || urlRideId;
+
+  // For demo purposes, create sample data if no ride data is provided
+  const hasSampleData = !rideData.rideId && !urlRideId;
+  const sampleRideData = {
+    rideId: 'sample-ride-' + Date.now(),
+    fare: 250,
+    pickup: 'Colombo Fort Railway Station, Colombo 01',
+    destination: 'Bandaranaike International Airport, Katunayake',
+    vehicleType: 'car',
+    paymentMethod: 'card',
+    captain: {
+      fullname: { firstname: 'Kasun', lastname: 'Perera' },
+      phone: '+94771234567'
+    },
+    duration: 2400 // 40 minutes
+  };
+
+  // Use sample data if no real ride data is available
+  const effectiveRideData = hasSampleData ? sampleRideData : rideData;
+  const effectiveFinalRideId = hasSampleData ? sampleRideData.rideId : finalRideId;
+
+  console.log('🔍 Navigation data received:', {
+    currentUrl: window.location.href,
+    searchParams: location.search,
+    locationState: location.state,
+    rideData,
+    extractedRideId: rideId,
+    urlRideId: urlRideId,
+    finalRideId: finalRideId,
+    hasSampleData,
+    effectiveRideData,
+    effectiveFinalRideId,
+    hasRideData: !!effectiveRideData,
+    rideDataKeys: Object.keys(effectiveRideData || {}),
+    socketFare: effectiveRideData?.fare,
+    socketPickup: effectiveRideData?.pickup,
+    socketDestination: effectiveRideData?.destination,
+    socketVehicleType: effectiveRideData?.vehicleType,
+    paymentMethod: effectiveRideData?.paymentMethod
+  });
 
   // Use real ride data from database, fallback to socket data
-  const currentRide = rideDetails || rideData;
+  const currentRide = rideDetails || effectiveRideData;
   const {
     fare: rawFare,
-    pickup,
-    destination,
+    pickup: rawPickup,
+    destination: rawDestination,
     vehicle: vehicleType,
+    vehicleType: socketVehicleType, // Handle both field names
     captain,
     duration
   } = currentRide;
 
-  // Validate and ensure fare is a valid number
-  const fare = parseFloat(rawFare) || 0;
-  const serviceFee = Math.round(fare * 0.029 + 5);
-  const totalAmount = Math.round(fare + serviceFee);
+  // Handle different vehicle field names
+  const finalVehicleType = vehicleType || socketVehicleType;
 
-  console.log('🔍 RidePayment initialized:', {
-    rideId,
-    rawFare,
-    fare,
-    serviceFee,
-    totalAmount,
-    hasRideDetails: !!rideDetails
-  });
+  // Prioritize database data for all ride details
+  const pickup = rideDetails?.pickup || rawPickup || 'Pickup Location';
+  const destination = rideDetails?.destination || rawDestination || 'Destination';
+
+  // Validate and ensure fare is a valid number - prioritize database data
+  const fare = parseFloat(rideDetails?.fare || rawFare) || 0;
+  const serviceFee = fare > 0 ? parseFloat((fare * 0.029 + 5).toFixed(2)) : 5.00;
+  const totalAmount = parseFloat((fare + serviceFee).toFixed(2));
+
+  // Log payment and location data whenever they change
+  useEffect(() => {
+    console.log('💰 Payment and location data updated:', {
+      rideId,
+      finalRideId,
+      payment: {
+        rawFare,
+        databaseFare: rideDetails?.fare,
+        calculatedFare: fare,
+        serviceFee,
+        totalAmount
+      },
+      locations: {
+        socketPickup: rawPickup?.substring(0, 50) + '...',
+        databasePickup: rideDetails?.pickup?.substring(0, 50) + '...',
+        finalPickup: pickup?.substring(0, 50) + '...',
+        socketDestination: rawDestination?.substring(0, 50) + '...',
+        databaseDestination: rideDetails?.destination?.substring(0, 50) + '...',
+        finalDestination: destination?.substring(0, 50) + '...'
+      },
+      hasRideDetails: !!rideDetails,
+      paymentCalculated
+    });
+  }, [rideId, finalRideId, rawFare, fare, serviceFee, totalAmount, pickup, destination, rawPickup, rawDestination, rideDetails, paymentCalculated]);
 
   // Fetch real ride data from database
   const fetchRideDetails = async (rideId) => {
@@ -83,14 +160,21 @@ const RidePayment = () => {
       if (response.data.success) {
         console.log('✅ Real ride data fetched:', response.data.ride);
         setRideDetails(response.data.ride);
+        setPaymentCalculated(true); // Trigger recalculation
         return response.data.ride;
       } else {
         console.error('❌ Failed to fetch ride details:', response.data.message);
-        return null;
+        throw new Error(response.data.message || 'Failed to fetch ride details');
       }
     } catch (error) {
       console.error('❌ Error fetching ride details:', error);
-      return null;
+      if (error.response?.status === 404) {
+        throw new Error('Ride not found. It may have been deleted or you may not have access to it.');
+      } else if (error.response?.status === 401) {
+        throw new Error('Authentication failed. Please log in again.');
+      } else {
+        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch ride details');
+      }
     } finally {
       setFetchingRide(false);
     }
@@ -160,34 +244,86 @@ const RidePayment = () => {
 
     console.log('🔍 RidePayment initializing with data:', {
       rideId,
+      finalRideId,
+      effectiveFinalRideId,
       fare,
-      hasData: !!(rideId && fare),
-      rideData
+      hasData: !!(effectiveFinalRideId && (fare || effectiveRideData.fare)),
+      effectiveRideData,
+      hasSampleData
     });
 
-    if (rideId) {
+    if (effectiveFinalRideId) {
       console.log('✅ Ride ID found, fetching real data from database');
       setIsInitialized(true);
 
       // Fetch real ride data and payment data from database
       Promise.all([
-        fetchRideDetails(rideId),
-        fetchPaymentData(rideId)
+        fetchRideDetails(effectiveFinalRideId),
+        fetchPaymentData(effectiveFinalRideId)
       ]).then(([realRideData]) => {
+        console.log('🔄 Processing fetched data:', {
+          realRideData: realRideData ? {
+            id: realRideData._id,
+            fare: realRideData.fare,
+            pickup: realRideData.pickup?.substring(0, 50) + '...',
+            destination: realRideData.destination?.substring(0, 50) + '...',
+            vehicle: realRideData.vehicle,
+            status: realRideData.status
+          } : null,
+          socketData: {
+            fare: rawFare,
+            pickup: rawPickup?.substring(0, 50) + '...',
+            destination: rawDestination?.substring(0, 50) + '...'
+          },
+          finalData: {
+            calculatedFare: fare,
+            finalPickup: pickup?.substring(0, 50) + '...',
+            finalDestination: destination?.substring(0, 50) + '...'
+          },
+          hasRealData: !!(realRideData && realRideData.fare > 0),
+          hasSocketData: rawFare > 0
+        });
+
+        // Check if we have valid data from database
         if (realRideData && realRideData.fare > 0) {
-          console.log('✅ Real ride data loaded, initializing payment');
+          console.log('✅ Real ride data loaded, initializing payment with fare:', realRideData.fare);
           initializePayment();
-        } else if (fare > 0) {
-          console.log('⚠️ Using socket data as fallback');
-          initializePayment();
-        } else {
-          console.log('❌ No valid ride data available');
-          setError('Unable to load ride information. Please try again.');
         }
+        // Fallback to socket data if available
+        else if (effectiveRideData.fare > 0) {
+          console.log('⚠️ Using socket data as fallback with fare:', effectiveRideData.fare);
+          console.log('🔍 Socket data details:', {
+            fare: effectiveRideData.fare,
+            pickup: effectiveRideData.pickup,
+            destination: effectiveRideData.destination,
+            vehicleType: effectiveRideData.vehicleType,
+            paymentMethod: effectiveRideData.paymentMethod,
+            hasSampleData
+          });
+          initializePayment();
+        }
+        // If we have ride data but no fare, it might be a cash payment or incomplete ride
+        else if (realRideData) {
+          console.log('⚠️ Ride found but no fare - might be cash payment or incomplete ride');
+          setError(`Ride found but no payment required. Status: ${realRideData.status}, Payment Method: ${realRideData.paymentMethod || 'Not specified'}`);
+        }
+        // Check if socket data indicates this is not a card payment
+        else if (rideData.paymentMethod && rideData.paymentMethod !== 'card') {
+          console.log('⚠️ Payment method is not card:', rideData.paymentMethod);
+          setError(`This ride uses ${rideData.paymentMethod} payment method, not card payment.`);
+        }
+        // No valid data at all
+        else {
+          console.log('❌ No valid ride data available - realData:', !!realRideData, 'socketFare:', rideData.fare);
+          setError('Unable to load ride information. The ride may not exist or may not require payment.');
+        }
+      }).catch(error => {
+        console.error('❌ Error in data fetching promise:', error);
+        setError(`Failed to load ride data: ${error.response?.data?.message || error.message}`);
       });
     } else {
-      console.log('❌ No ride ID provided');
-      setError('No ride information provided. Please try again.');
+      console.log('❌ No ride ID provided in navigation state');
+      setError('No ride information provided. Please navigate from a completed ride.');
       setIsInitialized(true);
     }
   }, [rideId, fare, isInitialized]);
@@ -197,11 +333,21 @@ const RidePayment = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
 
+      // Use the most current fare amount
+      const currentFare = parseFloat(rideDetails?.fare || rawFare) || 0;
+      const currentTotal = Math.round(currentFare + Math.round(currentFare * 0.029 + 5));
+
+      console.log('🔄 Initializing payment with current amounts:', {
+        currentFare,
+        currentTotal,
+        rideId
+      });
+
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/payment/create-intent`,
         {
           rideId,
-          amount: fare,
+          amount: currentTotal, // Use total amount for payment intent
           currency: 'lkr',
           paymentMethod: 'card'
         },
@@ -226,32 +372,44 @@ const RidePayment = () => {
   };
 
   const processPayment = async () => {
+    // Validate form first
+    if (!validateForm()) {
+      setError('Please fill in all required fields correctly.');
+      return;
+    }
+
     try {
       setLoading(true);
       setPaymentStatus('processing');
+      setError(''); // Clear any previous errors
       const token = localStorage.getItem('token');
 
       console.log('💳 Processing payment:', {
-        rideId,
+        rideId: effectiveFinalRideId,
         amount: totalAmount,
         paymentMethod: 'card',
+        cardLast4: cardNumber.slice(-4),
         existingPayment: existingPayment?.id
       });
 
-      // Simulate payment processing (in real app, this would integrate with Stripe Elements)
+      // Simulate payment processing (in real app, this would integrate with Stripe/PayHere)
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/payment/process`,
         {
-          rideId,
+          rideId: effectiveFinalRideId,
           paymentMethod: 'card',
           amount: totalAmount, // Use total amount including service fee
           paymentData: {
             paymentIntentId: paymentDetails?.paymentIntentId,
             paymentId: existingPayment?.id,
             serviceFee: serviceFee,
-            baseFare: fare
+            baseFare: fare,
+            cardLast4: cardNumber.slice(-4),
+            cardholderName: cardholderName,
+            // Note: In production, never send full card details to your backend
+            // Use a payment processor like Stripe, PayHere, or similar
           }
         },
         {
@@ -301,6 +459,65 @@ const RidePayment = () => {
     navigate('/home');
   };
 
+  // Payment form validation
+  const validateForm = () => {
+    const errors = {};
+
+    // Card number validation (basic)
+    if (!cardNumber.replace(/\s/g, '')) {
+      errors.cardNumber = 'Card number is required';
+    } else if (cardNumber.replace(/\s/g, '').length < 13) {
+      errors.cardNumber = 'Card number must be at least 13 digits';
+    }
+
+    // Expiry date validation
+    if (!expiryDate) {
+      errors.expiryDate = 'Expiry date is required';
+    } else if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      errors.expiryDate = 'Invalid format (MM/YY)';
+    }
+
+    // CVV validation
+    if (!cvv) {
+      errors.cvv = 'CVV is required';
+    } else if (cvv.length < 3) {
+      errors.cvv = 'CVV must be 3-4 digits';
+    }
+
+    // Cardholder name validation
+    if (!cardholderName.trim()) {
+      errors.cardholderName = 'Cardholder name is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Format card number with spaces
+  const formatCardNumber = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  // Format expiry date
+  const formatExpiryDate = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) {
+      return v.substring(0, 2) + '/' + v.substring(2, 4);
+    }
+    return v;
+  };
+
   if (paymentStatus === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
@@ -319,9 +536,42 @@ const RidePayment = () => {
               <h2 className="text-3xl font-bold text-gray-900 mb-3">
                 Payment Successful! 🎉
               </h2>
-              <p className="text-gray-600 mb-8 text-lg">
+              <p className="text-gray-600 mb-6 text-lg">
                 Your payment of <span className="font-bold text-green-600">LKR {totalAmount.toFixed(2)}</span> has been processed successfully.
               </p>
+
+              {/* Trip Summary in Success Screen */}
+              <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
+                <h4 className="font-semibold text-gray-800 mb-3 text-center">Trip Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start">
+                    <MapPin className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-green-700 font-medium">From: </span>
+                      <span className="text-gray-700">{pickup}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <Navigation className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-red-700 font-medium">To: </span>
+                      <span className="text-gray-700">{destination}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-blue-200">
+                    <div className="flex items-center">
+                      <Car className="w-4 h-4 text-blue-500 mr-2" />
+                      <span className="text-gray-600">{finalVehicleType || 'Car'}</span>
+                    </div>
+                    {duration && (
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 text-orange-500 mr-2" />
+                        <span className="text-gray-600">{Math.round(duration / 60)} min</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Enhanced Receipt */}
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-8 border border-gray-200">
@@ -332,7 +582,7 @@ const RidePayment = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Ride ID:</span>
-                    <span className="font-mono text-gray-900 bg-white px-2 py-1 rounded">{rideId}</span>
+                    <span className="font-mono text-gray-900 bg-white px-2 py-1 rounded">{effectiveFinalRideId}</span>
                   </div>
                   {existingPayment && (
                     <div className="flex justify-between items-center">
@@ -358,9 +608,17 @@ const RidePayment = () => {
                     <span className="text-gray-600">Payment Method:</span>
                     <div className="flex items-center">
                       <CreditCard className="w-4 h-4 text-blue-500 mr-1" />
-                      <span className="text-gray-900">Card Payment</span>
+                      <span className="text-gray-900">
+                        {cardNumber ? `**** ${cardNumber.slice(-4)}` : 'Card Payment'}
+                      </span>
                     </div>
                   </div>
+                  {cardholderName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Cardholder:</span>
+                      <span className="text-gray-900">{cardholderName}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Status:</span>
                     <div className="flex items-center">
@@ -467,6 +725,156 @@ const RidePayment = () => {
     );
   }
 
+  // Show error if no valid ride data
+  if (isInitialized && !effectiveFinalRideId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Payment Error" />
+        <div className="p-4 pt-20">
+          <div className="max-w-md mx-auto">
+            <Card className="p-6 text-center">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                No Ride Information
+              </h2>
+              <p className="text-gray-600 mb-4">
+                No ride ID was provided. Please navigate from a completed ride.
+              </p>
+
+              {/* Debug information */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-xs">
+                <div><strong>Debug Info:</strong></div>
+                <div>Current URL: {window.location.href}</div>
+                <div>Search Params: {location.search || 'None'}</div>
+                <div>Test Mode: {isTestMode ? 'Enabled' : 'Disabled'}</div>
+                <div>URL Ride ID: {urlRideId || 'None'}</div>
+                <div>Final Ride ID: {effectiveFinalRideId || 'None'}</div>
+              </div>
+
+              {/* Test mode option - always available for debugging */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-blue-800 mb-2">Test Payment Screen</h4>
+                <p className="text-sm text-blue-700 mb-3">
+                  For testing purposes, you can enable test mode with sample ride data.
+                </p>
+                <Button
+                  onClick={() => {
+                    const currentUrl = new URL(window.location);
+                    currentUrl.searchParams.set('test', 'true');
+                    window.location.href = currentUrl.toString();
+                  }}
+                  className="w-full mb-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  Enable Test Mode
+                </Button>
+                <p className="text-xs text-blue-600 mt-2">
+                  Or manually add ?test=true to the URL
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => navigate('/home')}
+                  className="w-full"
+                >
+                  Go to Home
+                </Button>
+                <Button
+                  onClick={() => navigate('/ride-history')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  View Ride History
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no valid fare data after trying to load
+  if (isInitialized && effectiveFinalRideId && fare <= 0 && !fetchingRide && !loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Payment Error" />
+        <div className="p-4 pt-20">
+          <div className="max-w-md mx-auto">
+            <Card className="p-6 text-center">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Invalid Ride Data
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Unable to load ride fare information for ride ID: {effectiveFinalRideId}. The ride may not exist or have invalid data.
+                {hasSampleData && <span className="text-blue-600"> (Using Sample Data)</span>}
+              </p>
+
+              {/* Debug info in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4 text-xs text-left">
+                  <div><strong>Debug Info:</strong></div>
+                  <div>Ride ID: {effectiveFinalRideId}</div>
+                  <div>Sample Data: {hasSampleData ? 'Yes' : 'No'}</div>
+                  <div>Socket Fare: {rawFare}</div>
+                  <div>DB Fare: {rideDetails?.fare || 'Not loaded'}</div>
+                  <div>Calculated Fare: {fare}</div>
+                  <div>Has Ride Details: {!!rideDetails ? 'Yes' : 'No'}</div>
+                  <div>Error: {error || 'None'}</div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setIsInitialized(false);
+                    setError('');
+                    setRideDetails(null);
+                    // Retry initialization
+                    if (effectiveFinalRideId) {
+                      Promise.all([
+                        fetchRideDetails(effectiveFinalRideId),
+                        fetchPaymentData(effectiveFinalRideId)
+                      ]).then(([realRideData]) => {
+                        setIsInitialized(true);
+                        if (realRideData && realRideData.fare > 0) {
+                          initializePayment();
+                        }
+                      }).catch(err => {
+                        console.error('Retry failed:', err);
+                        setError('Failed to load ride data. Please try again.');
+                        setIsInitialized(true);
+                      });
+                    }
+                  }}
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    'Retry Loading'
+                  )}
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Go Back
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <Header
@@ -526,7 +934,7 @@ const RidePayment = () => {
                     <Car className="w-4 h-4 text-blue-500 mr-2" />
                     <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Vehicle</span>
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 capitalize">{vehicleType || 'Car'}</p>
+                  <p className="text-sm font-semibold text-gray-900 capitalize">{finalVehicleType || 'Car'}</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -575,6 +983,26 @@ const RidePayment = () => {
             </div>
 
             <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
+              {/* Debug info - remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs space-y-1">
+                  <div><strong>Payment Data:</strong></div>
+                  <div>Socket Fare: {rawFare}</div>
+                  <div>DB Fare: {rideDetails?.fare || 'Not loaded'}</div>
+                  <div>Calculated Fare: {fare}</div>
+                  <div><strong>Service Fee Calculation:</strong></div>
+                  <div>Formula: (fare × 0.029) + 5</div>
+                  <div>Calculation: ({fare} × 0.029) + 5 = {(fare * 0.029).toFixed(2)} + 5 = {serviceFee.toFixed(2)}</div>
+                  <div><strong>Total: {fare.toFixed(2)} + {serviceFee.toFixed(2)} = {totalAmount.toFixed(2)}</strong></div>
+                  <div><strong>Location Data:</strong></div>
+                  <div>Socket Pickup: {rawPickup?.substring(0, 30) || 'Not available'}...</div>
+                  <div>DB Pickup: {rideDetails?.pickup?.substring(0, 30) || 'Not loaded'}...</div>
+                  <div>Socket Destination: {rawDestination?.substring(0, 30) || 'Not available'}...</div>
+                  <div>DB Destination: {rideDetails?.destination?.substring(0, 30) || 'Not loaded'}...</div>
+                  <div>Has Ride Details: {!!rideDetails ? 'Yes' : 'No'}</div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
@@ -699,38 +1127,98 @@ const RidePayment = () => {
               </div>
             </div>
 
-            {/* Enhanced Card Details */}
+            {/* Payment Form */}
             <div className="bg-white rounded-lg p-4 shadow-sm space-y-4">
-              {/* Card Display */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-10 -mt-10"></div>
-                <div className="absolute bottom-0 left-0 w-16 h-16 bg-white bg-opacity-10 rounded-full -ml-8 -mb-8"></div>
+              {/* Card Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Card Number
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                    placeholder="1234 5678 9012 3456"
+                    maxLength="19"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.cardNumber ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                  />
+                  <CreditCard className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
+                </div>
+                {formErrors.cardNumber && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.cardNumber}</p>
+                )}
+              </div>
 
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="w-8 h-6 bg-white bg-opacity-20 rounded"></div>
-                    <div className="text-xs font-medium opacity-80">VISA</div>
-                  </div>
+              {/* Cardholder Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cardholder Name
+                </label>
+                <input
+                  type="text"
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
+                  placeholder="JOHN DOE"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.cardholderName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                />
+                {formErrors.cardholderName && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.cardholderName}</p>
+                )}
+              </div>
 
-                  <div className="mb-4">
-                    <p className="text-lg font-mono tracking-wider">**** **** **** 4242</p>
-                  </div>
-
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-xs opacity-70 mb-1">CARD HOLDER</p>
-                      <p className="text-sm font-medium">JOHN DOE</p>
-                    </div>
-                    <div>
-                      <p className="text-xs opacity-70 mb-1">EXPIRES</p>
-                      <p className="text-sm font-medium">12/25</p>
-                    </div>
-                  </div>
+              {/* Expiry and CVV */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="text"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
+                    placeholder="MM/YY"
+                    maxLength="5"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.expiryDate ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                  />
+                  {formErrors.expiryDate && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.expiryDate}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CVV
+                  </label>
+                  <input
+                    type="text"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').substring(0, 4))}
+                    placeholder="123"
+                    maxLength="4"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.cvv ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                  />
+                  {formErrors.cvv && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.cvv}</p>
+                  )}
                 </div>
               </div>
 
+              {/* Form Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
+                    <span className="text-red-700 text-sm">{error}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Security Features */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t">
                 <div className="flex items-center p-3 bg-green-50 rounded-lg">
                   <Shield className="w-4 h-4 text-green-600 mr-2" />
                   <span className="text-xs font-medium text-green-700">SSL Encrypted</span>
